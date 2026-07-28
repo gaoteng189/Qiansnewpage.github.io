@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HTML 编写注意事项 &amp; CSS 使用说明</title>
-    <!-- 此处为演示样式，实际项目中建议使用外部CSS -->
+    <title>🔐 SHA-256 加密器 + 📈 函数可视化</title>
     <style>
-        /* ===== 全局重置 & 基础样式 ===== */
+        /* ----- 全局重置 & 基础 ----- */
         * {
             margin: 0;
             padding: 0;
@@ -14,430 +13,809 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: #f8fafc;
-            color: #0b1e33;
-            line-height: 1.7;
-            padding: 2rem 1rem;
+            min-height: 100vh;
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
 
-        .container {
+        .app {
             max-width: 1100px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 24px;
-            padding: 2.5rem 2rem;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+            padding: 28px 24px 34px;
         }
 
         h1 {
-            font-size: 2.2rem;
+            font-size: 26px;
             font-weight: 700;
-            letter-spacing: -0.02em;
-            border-bottom: 4px solid #2563eb;
-            padding-bottom: 0.6rem;
-            margin-bottom: 2rem;
-            display: inline-block;
-        }
-
-        h2 {
-            font-size: 1.6rem;
-            font-weight: 600;
-            margin-top: 2.8rem;
-            margin-bottom: 1.2rem;
-            color: #1e293b;
-            padding-left: 0.75rem;
-            border-left: 5px solid #2563eb;
-        }
-
-        h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-top: 1.8rem;
-            margin-bottom: 0.8rem;
             color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
         }
 
-        p,
-        li {
-            color: #1e293b;
+        .sub {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 28px;
+            border-bottom: 2px solid #e9edf2;
+            padding-bottom: 14px;
         }
 
-        ul,
-        ol {
-            padding-left: 1.6rem;
-            margin-bottom: 1.2rem;
-        }
-
-        li {
-            margin-bottom: 0.4rem;
-        }
-
-        .code-block {
-            background: #0b1e33;
-            color: #e2e8f0;
-            padding: 1.2rem 1.5rem;
-            border-radius: 14px;
-            overflow-x: auto;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            margin: 1rem 0 1.5rem 0;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .code-block .comment {
-            color: #94a3b8;
-        }
-
-        .code-block .tag {
-            color: #f472b6;
-        }
-
-        .code-block .attr {
-            color: #60a5fa;
-        }
-
-        .code-block .value {
-            color: #fbbf24;
-        }
-
-        .badge {
-            display: inline-block;
-            background: #dbeafe;
-            color: #1e4f8a;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.15rem 0.7rem;
-            border-radius: 20px;
-            margin-left: 0.5rem;
-            vertical-align: middle;
-        }
-
-        .grid-2col {
+        /* ----- 双列布局 ----- */
+        .row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.8rem;
-            margin: 1.2rem 0;
+            gap: 30px;
         }
 
-        @media (max-width: 640px) {
-            .grid-2col {
+        @media (max-width: 720px) {
+            .row {
                 grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            .container {
-                padding: 1.5rem 1rem;
-            }
-            h1 {
-                font-size: 1.7rem;
+                gap: 40px;
             }
         }
 
-        .tip-box {
-            background: #f1f5f9;
-            border-radius: 14px;
-            padding: 1rem 1.4rem;
-            margin: 1.2rem 0;
-            border-left: 6px solid #2563eb;
+        .card {
+            background: #f9fbfd;
+            border-radius: 20px;
+            padding: 20px 22px 26px;
+            border: 1px solid #eef2f6;
         }
 
-        .tip-box strong {
-            color: #0f172a;
-        }
-
-        hr {
-            border: none;
-            border-top: 2px dashed #d1d9e8;
-            margin: 2.5rem 0;
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-            margin: 1.2rem 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95rem;
-        }
-
-        th,
-        td {
-            border: 1px solid #d1d9e8;
-            padding: 0.6rem 1rem;
-            text-align: left;
-        }
-
-        th {
-            background: #f1f5f9;
+        .card h2 {
+            font-size: 18px;
             font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ----- SHA-256 样式 ----- */
+        .hash-input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hash-input-area input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #dce2ea;
+            border-radius: 12px;
+            font-size: 15px;
+            background: white;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 160px;
+        }
+
+        .hash-input-area input:focus {
+            border-color: #3b82f6;
+        }
+
+        .hash-input-area button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .hash-input-area button:hover {
+            background: #2563eb;
+        }
+        .hash-input-area button:active {
+            transform: scale(0.96);
+        }
+
+        .hash-result {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            font-family: "SF Mono", "JetBrains Mono", monospace;
+            font-size: 14px;
+            word-break: break-all;
+            color: #0f172a;
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .hash-result .hash-text {
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        .hash-result .copy-btn {
+            background: #eef2f6;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #334155;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .hash-result .copy-btn:hover {
+            background: #dce2ea;
+        }
+
+        .hash-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .hash-actions button {
+            padding: 6px 18px;
+            border: none;
+            border-radius: 20px;
+            background: #eef2f6;
+            font-size: 13px;
+            cursor: pointer;
+            color: #334155;
+            transition: background 0.2s;
+        }
+
+        .hash-actions button:hover {
+            background: #dce2ea;
+        }
+        .hash-actions .clear-btn {
+            color: #dc2626;
+        }
+        .hash-actions .clear-btn:hover {
+            background: #fee2e2;
+        }
+
+        /* ----- 函数可视化样式 ----- */
+        .viz-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            margin-bottom: 14px;
+            align-items: flex-end;
+        }
+
+        .viz-controls .field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1 0 100px;
+        }
+
+        .viz-controls .field label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #475569;
+            letter-spacing: 0.3px;
+        }
+
+        .viz-controls .field input {
+            padding: 8px 12px;
+            border: 2px solid #dce2ea;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .viz-controls .field input:focus {
+            border-color: #3b82f6;
+        }
+
+        .viz-controls .field input[type="number"] {
+            width: 100px;
+        }
+
+        .viz-btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .viz-btn-group button {
+            padding: 8px 18px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .viz-btn-group button:hover {
+            background: #2563eb;
+        }
+
+        .viz-btn-group .sample-btn {
+            background: #eef2f6;
+            color: #1e293b;
+            font-size: 13px;
+            padding: 6px 14px;
+        }
+
+        .viz-btn-group .sample-btn:hover {
+            background: #dce2ea;
+        }
+
+        .canvas-wrapper {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-top: 6px;
+            position: relative;
+        }
+
+        canvas#functionCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 4/3;
+            background: white;
+            touch-action: none;
+        }
+
+        .canvas-hint {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        /* ----- 通用 ----- */
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mt-2 {
+            margin-top: 12px;
+        }
+
+        .text-muted {
+            color: #94a3b8;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app">
+        <h1>🧰 前端工具集</h1>
+        <div class="sub">🔐 SHA-256 加密 ｜ 📈 函数可视化（纯前端，数据不上传）</div>
 
-        <h1>🧩 HTML 编写注意事项 · CSS 使用说明</h1>
-        <p style="font-size:1.1rem; color:#475569; margin-bottom:1.8rem;">
-            一份面向现代前端开发的简明指南，涵盖语义、可访问性、性能、布局与最佳实践。
-        </p>
-
-        <!-- ============================================================ -->
-        <!--                      HTML 部分                                 -->
-        <!-- ============================================================ -->
-        <h2>📄 HTML 编写注意事项</h2>
-
-        <h3>1. 语义化 HTML <span class="badge">核心</span></h3>
-        <p>使用正确的标签表达内容结构，而非滥用 <code>&lt;div&gt;</code> 和 <code>&lt;span&gt;</code>。</p>
-        <div class="code-block">
-            &lt;!-- ❌ 不推荐 --&gt;
-            &lt;div class="header"&gt;&lt;div class="nav"&gt;...&lt;/div&gt;&lt;/div&gt;
-            &lt;div class="main"&gt;&lt;div class="article"&gt;...&lt;/div&gt;&lt;/div&gt;
-
-            &lt;!-- ✅ 推荐 --&gt;
-            &lt;<span class="tag">header</span>&gt;
-            &lt;<span class="tag">nav</span>&gt;...&lt;/<span class="tag">nav</span>&gt;
-            &lt;/<span class="tag">header</span>&gt;
-            &lt;<span class="tag">main</span>&gt;
-            &lt;<span class="tag">article</span>&gt;...&lt;/<span class="tag">article</span>&gt;
-            &lt;/<span class="tag">main</span>&gt;
-        </div>
-        <ul>
-            <li><strong>好处：</strong>SEO 友好、可访问性提升、代码可维护性高。</li>
-            <li>常用语义标签：<code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;article&gt;</code>, <code>&lt;section&gt;</code>, <code>&lt;aside&gt;</code>, <code>&lt;footer&gt;</code>, <code>&lt;figure&gt;</code>, <code>&lt;figcaption&gt;</code>, <code>&lt;time&gt;</code> 等。</li>
-        </ul>
-
-        <h3>2. 文档结构与 Meta 信息</h3>
-        <ul>
-            <li>始终声明 <code>&lt;!DOCTYPE html&gt;</code> 触发标准模式。</li>
-            <li>设置 <code>&lt;html lang="zh-CN"&gt;</code> 正确标识页面语言。</li>
-            <li><code>&lt;meta charset="UTF-8"&gt;</code> 必须放在 <code>&lt;head&gt;</code> 最前面。</li>
-            <li><code>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</code> 是移动端适配的基石。</li>
-            <li>提供有意义的 <code>&lt;title&gt;</code>（60 字符内）和 <code>&lt;meta description&gt;</code>（150~160 字符）。</li>
-        </ul>
-
-        <h3>3. 可访问性 (A11y) <span class="badge">重要</span></h3>
-        <ul>
-            <li>为图片提供 <code>alt</code> 属性；装饰性图片可用 <code>alt=""</code>。</li>
-            <li>使用 <code>&lt;button&gt;</code> 或 <code>&lt;a&gt;</code> 而非 <code>&lt;div role="button"&gt;</code>，确保键盘可操作。</li>
-            <li>表单控件关联 <code>&lt;label for="id"&gt;</code> 或使用 <code>aria-label</code>。</li>
-            <li>使用 <code>aria-*</code> 属性增强复杂组件的语义（如 <code>aria-expanded</code>, <code>aria-controls</code>）。</li>
-            <li>确保颜色对比度符合 WCAG 2.1 AA 级（文本 4.5:1，大文本 3:1）。</li>
-        </ul>
-
-        <h3>4. 性能与加载优化</h3>
-        <ul>
-            <li>CSS 放在 <code>&lt;head&gt;</code> 中，使用 <code>&lt;link rel="stylesheet"&gt;</code> 阻止 FOUC。</li>
-            <li>JS 脚本放在 <code>&lt;body&gt;</code> 底部，或使用 <code>defer</code> / <code>async</code> 属性。</li>
-            <li>图片使用 <code>loading="lazy"</code> 实现懒加载，<code>srcset</code> 配合 <code>sizes</code> 提供响应式图片。</li>
-            <li>使用 <code>&lt;link rel="preconnect"&gt;</code> 提前连接第三方源（如 Google Fonts、CDN）。</li>
-            <li>避免过多外部请求，合并 CSS/JS 文件，使用字体子集或系统字体。</li>
-        </ul>
-
-        <h3>5. 表单与交互</h3>
-        <ul>
-            <li>每个 <code>&lt;input&gt;</code> 都有对应的 <code>&lt;label&gt;</code>，并设置 <code>for</code> 属性。</li>
-            <li>使用 <code>type="email"</code>, <code>type="number"</code>, <code>type="tel"</code> 等原生输入类型，提升移动端体验。</li>
-            <li>必填字段使用 <code>required</code>，并配合 <code>aria-required="true"</code>。</li>
-            <li>提供清晰的错误提示，并关联到对应输入框（使用 <code>aria-describedby</code>）。</li>
-        </ul>
-
-        <h3>6. 其他常见规范</h3>
-        <ul>
-            <li>标签名和属性名使用小写，属性值使用双引号。</li>
-            <li>自闭合标签（如 <code>&lt;img&gt;</code>, <code>&lt;input&gt;</code>, <code>&lt;br&gt;</code>）不需要闭合斜杠（HTML5 风格）。</li>
-            <li>缩进使用 2 或 4 空格，保持层级清晰。</li>
-            <li>使用 <code>&lt;!-- 注释 --&gt;</code> 标注复杂模块，提高可读性。</li>
-            <li>避免内联样式，将样式抽离到 CSS 文件中。</li>
-        </ul>
-
-        <hr />
-
-        <!-- ============================================================ -->
-        <!--                      CSS 部分                                  -->
-        <!-- ============================================================ -->
-        <h2>🎨 CSS 使用说明</h2>
-
-        <h3>1. 基本语法与引入方式</h3>
-        <div class="code-block">
-            <span class="comment">/* 选择器 { 属性: 值; } */</span>
-            <span class="tag">h1</span> {
-            <span class="attr">color</span>: <span class="value">#2563eb</span>;
-            <span class="attr">font-size</span>: <span class="value">2rem</span>;
-            }
-        </div>
-        <ul>
-            <li><strong>行内样式</strong>（不推荐）：<code>&lt;div style="color:red"&gt;</code></li>
-            <li><strong>内部样式</strong>（用于演示/单页）：<code>&lt;style&gt;...&lt;/style&gt;</code> 放在 <code>&lt;head&gt;</code></li>
-            <li><strong>外部样式</strong>（推荐）：<code>&lt;link rel="stylesheet" href="style.css"&gt;</code></li>
-        </ul>
-
-        <h3>2. 选择器与优先级</h3>
-        <div class="grid-2col">
-            <div>
-                <h4>常用选择器</h4>
-                <ul>
-                    <li><strong>元素</strong>：<code>div</code>, <code>p</code></li>
-                    <li><strong>类</strong>：<code>.class</code></li>
-                    <li><strong>ID</strong>：<code>#id</code>（尽量少用）</li>
-                    <li><strong>属性</strong>：<code>[type="text"]</code></li>
-                    <li><strong>伪类</strong>：<code>:hover</code>, <code>:nth-child()</code></li>
-                    <li><strong>伪元素</strong>：<code>::before</code>, <code>::after</code></li>
-                    <li><strong>组合</strong>：<code>ul &gt; li</code>, <code>.card .title</code></li>
-                </ul>
+        <div class="row">
+            <!-- ============ SHA-256 加密器 ============ -->
+            <div class="card">
+                <h2>🔐 SHA-256 加密器</h2>
+                <div class="hash-input-area">
+                    <input type="text" id="hashInput" placeholder="输入要加密的文本..." autofocus />
+                    <button id="hashBtn">加密</button>
+                </div>
+                <div class="hash-result">
+                    <span class="hash-text" id="hashResult">等待计算...</span>
+                    <button class="copy-btn" id="copyHashBtn">复制</button>
+                </div>
+                <div class="hash-actions">
+                    <button class="clear-btn" id="clearHashBtn">清空</button>
+                    <button id="sampleHashBtn" style="background:#eef2f6;">示例文本</button>
+                </div>
+                <div style="margin-top:14px; font-size:13px; color:#64748b;">
+                    ⚡ 使用 Web Crypto API，浏览器原生计算。
+                </div>
             </div>
-            <div>
-                <h4>优先级 (从高到低)</h4>
-                <ul>
-                    <li><code>!important</code>（谨慎使用）</li>
-                    <li>内联样式 (style 属性)</li>
-                    <li>ID 选择器 (#id)</li>
-                    <li>类、属性、伪类 (.class, [attr], :hover)</li>
-                    <li>元素、伪元素 (div, ::before)</li>
-                </ul>
-                <p style="font-size:0.9rem; color:#475569; margin-top:0.4rem;">
-                    💡 尽量使用类选择器，保持低特异性，便于覆盖。
-                </p>
+
+            <!-- ============ 函数可视化 ============ -->
+            <div class="card">
+                <h2>📈 函数可视化</h2>
+                <div class="viz-controls">
+                    <div class="field">
+                        <label>函数 f(x) =</label>
+                        <input type="text" id="funcInput" value="Math.sin(x)" placeholder="例如 x*x" />
+                    </div>
+                    <div class="field" style="flex:0 0 80px;">
+                        <label>X 最小值</label>
+                        <input type="number" id="xMin" value="-6.28" step="0.1" />
+                    </div>
+                    <div class="field" style="flex:0 0 80px;">
+                        <label>X 最大值</label>
+                        <input type="number" id="xMax" value="6.28" step="0.1" />
+                    </div>
+                    <div class="field" style="flex:0 0 80px;">
+                        <label>点数</label>
+                        <input type="number" id="points" value="200" step="10" min="10" max="1000" />
+                    </div>
+                </div>
+                <div class="viz-btn-group">
+                    <button id="drawBtn">绘制</button>
+                    <button class="sample-btn" data-fn="Math.sin(x)">sin(x)</button>
+                    <button class="sample-btn" data-fn="x*x">x²</button>
+                    <button class="sample-btn" data-fn="Math.cos(x)">cos(x)</button>
+                    <button class="sample-btn" data-fn="2*x+1">2x+1</button>
+                    <button class="sample-btn" data-fn="Math.tan(x)">tan(x)</button>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="functionCanvas" width="600" height="450"></canvas>
+                </div>
+                <div class="canvas-hint">
+                    🖱️ 鼠标悬停显示坐标值（正在绘制...）
+                </div>
             </div>
         </div>
-
-        <h3>3. 盒模型 <span class="badge">基础</span></h3>
-        <div class="tip-box">
-            <strong>💡 核心建议：</strong> 全局设置 <code>box-sizing: border-box;</code> 让宽高包含 padding 和 border，更符合直觉。
-        </div>
-        <div class="code-block">
-            <span class="comment">/* 重置盒模型 */</span>
-            <span class="tag">*</span>, <span class="tag">*::before</span>, <span class="tag">*::after</span> {
-            <span class="attr">box-sizing</span>: <span class="value">border-box</span>;
-            }
-        </div>
-        <ul>
-            <li><strong>content-box</strong>（默认）：宽度只包含内容，padding 和 border 会撑大元素。</li>
-            <li><strong>border-box</strong>：宽度包含 content + padding + border，布局更可控。</li>
-        </ul>
-
-        <h3>4. 布局：Flexbox</h3>
-        <p>一维布局模型，适合导航、卡片排列、居中、间距分配等。</p>
-        <div class="code-block">
-            <span class="tag">.container</span> {
-            <span class="attr">display</span>: <span class="value">flex</span>;
-            <span class="attr">flex-direction</span>: <span class="value">row</span>;       <span class="comment">/* row | column */</span>
-            <span class="attr">justify-content</span>: <span class="value">center</span>;    <span class="comment">/* 主轴对齐 */</span>
-            <span class="attr">align-items</span>: <span class="value">center</span>;        <span class="comment">/* 交叉轴对齐 */</span>
-            <span class="attr">gap</span>: <span class="value">1rem</span>;                <span class="comment">/* 间距 (推荐) */</span>
-            <span class="attr">flex-wrap</span>: <span class="value">wrap</span>;           <span class="comment">/* 换行 */</span>
-            }
-        </div>
-
-        <h3>5. 布局：CSS Grid</h3>
-        <p>二维布局模型，适合页面整体结构、复杂网格、画廊等。</p>
-        <div class="code-block">
-            <span class="tag">.grid</span> {
-            <span class="attr">display</span>: <span class="value">grid</span>;
-            <span class="attr">grid-template-columns</span>: <span class="value">repeat(3, 1fr)</span>;  <span class="comment">/* 3列等宽 */</span>
-            <span class="attr">grid-template-rows</span>: <span class="value">auto 200px</span>;
-            <span class="attr">gap</span>: <span class="value">1.5rem</span>;
-            <span class="attr">grid-auto-rows</span>: <span class="value">minmax(120px, auto)</span>;
-            }
-        </div>
-
-        <h3>6. 响应式设计 <span class="badge">必备</span></h3>
-        <ul>
-            <li>使用 <code>@media</code> 查询针对不同视口应用样式。</li>
-            <li>移动优先：先写移动端样式，再用 <code>min-width</code> 逐步增强。</li>
-            <li>使用相对单位：<code>rem</code>（字体）、<code>%</code>、<code>vw</code>/<code>vh</code>、<code>clamp()</code>。</li>
-            <li>结合 Flexbox/Grid 的 <code>auto</code>、<code>fr</code>、<code>minmax()</code> 实现流动布局。</li>
-        </ul>
-        <div class="code-block">
-            <span class="comment">/* 移动优先：基础样式 */</span>
-            <span class="tag">.card</span> { <span class="attr">padding</span>: <span class="value">1rem</span>; }
-
-            <span class="comment">/* 平板 */</span>
-            @<span class="tag">media</span> (<span class="attr">min-width</span>: <span class="value">768px</span>) {
-            <span class="tag">.card</span> { <span class="attr">padding</span>: <span class="value">2rem</span>; }
-            }
-
-            <span class="comment">/* 桌面 */</span>
-            @<span class="tag">media</span> (<span class="attr">min-width</span>: <span class="value">1024px</span>) {
-            <span class="tag">.card</span> { <span class="attr">padding</span>: <span class="value">3rem</span>; }
-            }
-        </div>
-
-        <h3>7. 常用技巧与性能优化</h3>
-        <ul>
-            <li><strong>命名规范：</strong>推荐 BEM（Block__Element--Modifier）或语义化类名（如 <code>.nav__item--active</code>）。</li>
-            <li><strong>避免 !important：</strong>通过提高选择器特异性或调整顺序来解决冲突。</li>
-            <li><strong>CSS 自定义属性（变量）：</strong><code>--primary-color: #2563eb;</code> 方便主题管理。</li>
-            <li><strong>减少重绘/回流：</strong>使用 <code>transform</code> 和 <code>opacity</code> 做动画，避免改变 width/height/top/left。</li>
-            <li><strong>压缩 CSS：</strong>生产环境使用工具（如 cssnano、clean-css）移除空格和注释。</li>
-            <li><strong>使用 will-change：</strong>仅在必要时提示浏览器优化（如 <code>will-change: transform;</code>）。</li>
-        </ul>
-
-        <div class="tip-box">
-            <strong>📌 开发者工具：</strong> Chrome DevTools 的 <strong>Elements</strong> 面板可实时调试样式，<strong>Performance</strong> 面板分析重绘/回流，<strong>Lighthouse</strong> 可检测可访问性与性能问题。
-        </div>
-
-        <h3>8. CSS 与 HTML 协作要点</h3>
-        <ul>
-            <li>避免使用 <code>id</code> 作为样式钩子（用 <code>class</code> 更可复用）。</li>
-            <li>保持样式与结构分离：不要在 HTML 中写 <code>&lt;style&gt;</code> 或内联样式（除非必要）。</li>
-            <li>利用 <code>data-*</code> 属性与 CSS 属性选择器结合，实现动态样式（如 <code>[data-active="true"]</code>）。</li>
-            <li>使用 <code>@import</code> 需谨慎，会增加请求次数；推荐使用 <code>&lt;link&gt;</code> 合并或构建工具。</li>
-        </ul>
-
-        <hr />
-
-        <h2>📋 速查表</h2>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>分类</th>
-                        <th>推荐做法</th>
-                        <th>避免</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>HTML 结构</td>
-                        <td>语义化标签、清晰的 heading 层级</td>
-                        <td>滥用 div/span、跳级使用 h1~h6</td>
-                    </tr>
-                    <tr>
-                        <td>可访问性</td>
-                        <td>alt、label、aria-*、键盘可操作</td>
-                        <td>纯图片无文字、无焦点样式、缺少表单关联</td>
-                    </tr>
-                    <tr>
-                        <td>CSS 组织</td>
-                        <td>BEM 命名、CSS 变量、组件化</td>
-                        <td>深嵌套（&gt; 3层）、!important 滥用</td>
-                    </tr>
-                    <tr>
-                        <td>布局</td>
-                        <td>Flexbox / Grid、相对单位、gap</td>
-                        <td>float 布局、table 布局（非表格数据）</td>
-                    </tr>
-                    <tr>
-                        <td>响应式</td>
-                        <td>移动优先、clamp()、媒体查询断点</td>
-                        <td>固定 px 宽度、忽略触摸目标大小</td>
-                    </tr>
-                    <tr>
-                        <td>性能</td>
-                        <td>图片懒加载、CSS/JS 压缩、减少请求</td>
-                        <td>大尺寸未压缩图片、过多 @import</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <p style="margin-top:2.4rem; color:#64748b; border-top:1px solid #e2e8f0; padding-top:1.5rem; text-align:center;">
-            2026 © 前端开发指南
-        </p>
-
     </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ==============================================================
+            //  1. SHA-256 加密器
+            // ==============================================================
+            const hashInput = document.getElementById('hashInput');
+            const hashBtn = document.getElementById('hashBtn');
+            const hashResult = document.getElementById('hashResult');
+            const copyHashBtn = document.getElementById('copyHashBtn');
+            const clearHashBtn = document.getElementById('clearHashBtn');
+            const sampleHashBtn = document.getElementById('sampleHashBtn');
+
+            // 使用 Web Crypto API 计算 SHA-256
+            async function sha256(message) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(message);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            async function handleHash() {
+                const text = hashInput.value.trim();
+                if (!text) {
+                    hashResult.textContent = '⚠️ 请输入要加密的文本';
+                    return;
+                }
+                hashResult.textContent = '⏳ 计算中...';
+                try {
+                    const hash = await sha256(text);
+                    hashResult.textContent = hash;
+                } catch (err) {
+                    hashResult.textContent = '❌ 加密失败：' + err.message;
+                }
+            }
+
+            hashBtn.addEventListener('click', handleHash);
+            hashInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleHash();
+                }
+            });
+
+            copyHashBtn.addEventListener('click', () => {
+                const text = hashResult.textContent;
+                if (text && !text.startsWith('⚠️') && !text.startsWith('⏳') && !text.startsWith('❌')) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        const orig = copyHashBtn.textContent;
+                        copyHashBtn.textContent = '✅ 已复制';
+                        setTimeout(() => { copyHashBtn.textContent = orig; }, 1500);
+                    }).catch(() => {
+                        // fallback
+                        const range = document.createRange();
+                        range.selectNode(hashResult);
+                        window.getSelection().removeAllRanges();
+                        window.getSelection().addRange(range);
+                        document.execCommand('copy');
+                        window.getSelection().removeAllRanges();
+                        const orig = copyHashBtn.textContent;
+                        copyHashBtn.textContent = '✅ 已复制';
+                        setTimeout(() => { copyHashBtn.textContent = orig; }, 1500);
+                    });
+                } else {
+                    alert('没有可复制的内容');
+                }
+            });
+
+            clearHashBtn.addEventListener('click', () => {
+                hashInput.value = '';
+                hashResult.textContent = '等待计算...';
+                hashInput.focus();
+            });
+
+            sampleHashBtn.addEventListener('click', () => {
+                hashInput.value = 'Hello, 前端工具!';
+                handleHash();
+            });
+
+            // ==============================================================
+            //  2. 函数可视化 (Canvas)
+            // ==============================================================
+            const canvas = document.getElementById('functionCanvas');
+            const ctx = canvas.getContext('2d');
+            const funcInput = document.getElementById('funcInput');
+            const xMinInput = document.getElementById('xMin');
+            const xMaxInput = document.getElementById('xMax');
+            const pointsInput = document.getElementById('points');
+            const drawBtn = document.getElementById('drawBtn');
+
+            // 设置 Canvas 实际尺寸 (保持宽高比 4:3)
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                // 保持绘图清晰，使用物理像素
+                const dpr = window.devicePixelRatio || 1;
+                const width = rect.width || 600;
+                const height = width * 0.75; // 4:3
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+                ctx.scale(dpr, dpr);
+                // 保存逻辑尺寸以便绘图
+                canvas._logicalWidth = width;
+                canvas._logicalHeight = height;
+            }
+
+            // 绘制函数
+            function drawFunction() {
+                const expr = funcInput.value.trim();
+                if (!expr) {
+                    alert('请输入函数表达式');
+                    return;
+                }
+                const xMin = parseFloat(xMinInput.value);
+                const xMax = parseFloat(xMaxInput.value);
+                if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) {
+                    alert('请输入有效的 x 范围（最小值 < 最大值）');
+                    return;
+                }
+                let points = parseInt(pointsInput.value, 10);
+                if (isNaN(points) || points < 2) points = 100;
+
+                // 构建函数: 使用 Function 构造函数，将 x 作为参数
+                let fn;
+                try {
+                    fn = new Function('x', `"use strict"; return (${expr});`);
+                } catch (e) {
+                    alert('函数表达式有语法错误: ' + e.message);
+                    return;
+                }
+
+                // 测试几个点
+                try {
+                    fn(xMin);
+                    fn((xMin + xMax) / 2);
+                    fn(xMax);
+                } catch (e) {
+                    alert('函数计算错误: ' + e.message);
+                    return;
+                }
+
+                // 计算数据点
+                const step = (xMax - xMin) / (points - 1);
+                const data = [];
+                let yMin = Infinity,
+                    yMax = -Infinity;
+                for (let i = 0; i < points; i++) {
+                    const x = xMin + i * step;
+                    let y;
+                    try {
+                        y = fn(x);
+                    } catch (e) {
+                        y = NaN;
+                    }
+                    if (typeof y !== 'number' || !isFinite(y)) {
+                        data.push({ x, y: NaN });
+                    } else {
+                        data.push({ x, y });
+                        if (y < yMin) yMin = y;
+                        if (y > yMax) yMax = y;
+                    }
+                }
+
+                // 如果所有点都是 NaN
+                if (yMin === Infinity) {
+                    alert('函数在所有采样点上都无效（NaN 或 Infinity）');
+                    return;
+                }
+
+                // 适当扩展 y 范围，留白
+                const yRange = yMax - yMin;
+                if (yRange === 0) {
+                    yMin -= 1;
+                    yMax += 1;
+                } else {
+                    const pad = yRange * 0.1;
+                    yMin -= pad;
+                    yMax += pad;
+                }
+
+                // 准备绘制
+                const W = canvas._logicalWidth;
+                const H = canvas._logicalHeight;
+                ctx.clearRect(0, 0, W, H);
+
+                // ---- 绘制网格和坐标轴 ----
+                ctx.save();
+
+                // 背景
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
+
+                // 坐标变换：将数据坐标 (x,y) 映射到 canvas 像素
+                function xToPixel(x) {
+                    return ((x - xMin) / (xMax - xMin)) * W;
+                }
+
+                function yToPixel(y) {
+                    return H - ((y - yMin) / (yMax - yMin)) * H;
+                }
+
+                // 绘制网格线（浅灰）
+                ctx.strokeStyle = '#e9edf2';
+                ctx.lineWidth = 0.5;
+
+                // 垂直网格（根据范围自动选择步长）
+                const xStep = Math.pow(10, Math.floor(Math.log10((xMax - xMin) / 5)));
+                let xGrid = Math.ceil(xMin / xStep) * xStep;
+                while (xGrid <= xMax) {
+                    const px = xToPixel(xGrid);
+                    ctx.beginPath();
+                    ctx.moveTo(px, 0);
+                    ctx.lineTo(px, H);
+                    ctx.stroke();
+                    // 标数字
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    const label = (Math.abs(xGrid) < 1e-9) ? '0' : (xGrid % 1 === 0 ? xGrid.toString() : xGrid.toFixed(2));
+                    ctx.fillText(label, px, H - 14);
+                    xGrid += xStep;
+                }
+
+                // 水平网格
+                const yStep = Math.pow(10, Math.floor(Math.log10((yMax - yMin) / 5)));
+                let yGrid = Math.ceil(yMin / yStep) * yStep;
+                while (yGrid <= yMax) {
+                    const py = yToPixel(yGrid);
+                    ctx.beginPath();
+                    ctx.moveTo(0, py);
+                    ctx.lineTo(W, py);
+                    ctx.stroke();
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    const label = (Math.abs(yGrid) < 1e-9) ? '0' : (yGrid % 1 === 0 ? yGrid.toString() : yGrid.toFixed(2));
+                    ctx.fillText(label, 12, py);
+                    yGrid += yStep;
+                }
+
+                // 绘制坐标轴（黑色实线）
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.5;
+                // x轴 (y=0)
+                if (yMin <= 0 && yMax >= 0) {
+                    const py0 = yToPixel(0);
+                    ctx.beginPath();
+                    ctx.moveTo(0, py0);
+                    ctx.lineTo(W, py0);
+                    ctx.stroke();
+                }
+                // y轴 (x=0)
+                if (xMin <= 0 && xMax >= 0) {
+                    const px0 = xToPixel(0);
+                    ctx.beginPath();
+                    ctx.moveTo(px0, 0);
+                    ctx.lineTo(px0, H);
+                    ctx.stroke();
+                }
+
+                // ---- 绘制函数曲线 ----
+                ctx.beginPath();
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 3;
+                let started = false;
+                for (let i = 0; i < data.length; i++) {
+                    const d = data[i];
+                    if (isNaN(d.y)) {
+                        started = false;
+                        continue;
+                    }
+                    const px = xToPixel(d.x);
+                    const py = yToPixel(d.y);
+                    // 裁剪边界，防止溢出
+                    if (px < 0 || px > W || py < 0 || py > H) {
+                        // 可画但保持连线，但为了美观，跳过极端点
+                        // 这里我们简单跳过超出画布的点，避免线条飞出
+                        // 更好的做法是裁剪，但简单跳过可能导致断线，但可接受
+                        started = false;
+                        continue;
+                    }
+                    if (!started) {
+                        ctx.moveTo(px, py);
+                        started = true;
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.stroke();
+
+                // 绘制数据点（可选小圆点）
+                ctx.fillStyle = '#2563eb';
+                for (let i = 0; i < data.length; i++) {
+                    const d = data[i];
+                    if (isNaN(d.y)) continue;
+                    const px = xToPixel(d.x);
+                    const py = yToPixel(d.y);
+                    if (px < 0 || px > W || py < 0 || py > H) continue;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 1.5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // 显示坐标信息（鼠标悬停）
+                // 更新提示
+                const hint = document.querySelector('.canvas-hint');
+                hint.textContent = `📊 范围 x: [${xMin.toFixed(2)}, ${xMax.toFixed(2)}]  y: [${yMin.toFixed(2)}, ${yMax.toFixed(2)}]  采样点: ${data.length}`;
+            }
+
+            // 画布事件：鼠标移动显示坐标
+            function setupCanvasInteraction() {
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas._logicalWidth / rect.width;
+                    const scaleY = canvas._logicalHeight / rect.height;
+                    const mx = (e.clientX - rect.left) * scaleX;
+                    const my = (e.clientY - rect.top) * scaleY;
+                    // 计算数据坐标 (需知道当前范围)
+                    const xMin = parseFloat(xMinInput.value);
+                    const xMax = parseFloat(xMaxInput.value);
+                    // 我们需要知道 yMin, yMax ？但我们没有存储，可以用画布上的坐标反推，但需要知道上次绘制的 yMin/yMax。
+                    // 简单起见，我们只显示 x 坐标，y 坐标从函数计算（但需要函数表达式）
+                    // 更精确：存储上次绘制的 yMin/yMax 到全局变量
+                    if (typeof window._lastYMin === 'undefined') return;
+                    const yMin = window._lastYMin;
+                    const yMax = window._lastYMax;
+                    const x = xMin + (mx / canvas._logicalWidth) * (xMax - xMin);
+                    const y = yMin + (1 - my / canvas._logicalHeight) * (yMax - yMin);
+                    // 尝试用函数计算真实 y
+                    let realY = null;
+                    try {
+                        const fn = new Function('x', `"use strict"; return (${funcInput.value.trim()});`);
+                        realY = fn(x);
+                    } catch (e) { /* ignore */ }
+                    const hint = document.querySelector('.canvas-hint');
+                    if (realY !== null && isFinite(realY)) {
+                        hint.textContent = `📍 x = ${x.toFixed(4)},  f(x) = ${realY.toFixed(4)}`;
+                    } else {
+                        hint.textContent = `📍 x = ${x.toFixed(4)}`;
+                    }
+                });
+                canvas.addEventListener('mouseleave', () => {
+                    const hint = document.querySelector('.canvas-hint');
+                    hint.textContent = '🖱️ 鼠标悬停显示坐标值';
+                });
+            }
+
+            // 扩展绘制，存储 yMin/yMax
+            const originalDraw = drawFunction;
+            drawFunction = function() {
+                // 先计算范围，但不绘制，然后存储
+                const expr = funcInput.value.trim();
+                if (!expr) return;
+                const xMin = parseFloat(xMinInput.value);
+                const xMax = parseFloat(xMaxInput.value);
+                if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
+                let points = parseInt(pointsInput.value, 10) || 100;
+                let fn;
+                try {
+                    fn = new Function('x', `"use strict"; return (${expr});`);
+                } catch (e) { return; }
+                const step = (xMax - xMin) / (points - 1);
+                let yMin = Infinity,
+                    yMax = -Infinity;
+                for (let i = 0; i < points; i++) {
+                    const x = xMin + i * step;
+                    let y;
+                    try { y = fn(x); } catch (e) { y = NaN; }
+                    if (typeof y === 'number' && isFinite(y)) {
+                        if (y < yMin) yMin = y;
+                        if (y > yMax) yMax = y;
+                    }
+                }
+                if (yMin === Infinity) { yMin = -1;
+                    yMax = 1; }
+                const yRange = yMax - yMin;
+                if (yRange === 0) { yMin -= 1;
+                    yMax += 1; } else {
+                    const pad = yRange * 0.1;
+                    yMin -= pad;
+                    yMax += pad;
+                }
+                window._lastYMin = yMin;
+                window._lastYMax = yMax;
+                originalDraw.call(this);
+            };
+
+            // 绑定绘制事件
+            drawBtn.addEventListener('click', drawFunction);
+
+            // 示例按钮
+            document.querySelectorAll('.sample-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    funcInput.value = btn.dataset.fn;
+                    drawFunction();
+                });
+            });
+
+            // 输入框回车触发绘制
+            funcInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
+                    drawFunction(); } });
+            xMinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
+                    drawFunction(); } });
+            xMaxInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
+                    drawFunction(); } });
+            pointsInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
+                    drawFunction(); } });
+
+            // 页面加载 & 窗口调整时重绘
+            window.addEventListener('load', () => {
+                resizeCanvas();
+                // 默认绘制 sin(x)
+                drawFunction();
+                setupCanvasInteraction();
+            });
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                drawFunction();
+            });
+
+            // 当输入数字变化时自动重绘（可选）
+            [xMinInput, xMaxInput, pointsInput].forEach(el => {
+                el.addEventListener('change', drawFunction);
+            });
+
+            // 暴露 resize 以便调试
+            window._resizeCanvas = resizeCanvas;
+
+            // ==============================================================
+            //  额外：复制哈希时也支持快捷键
+            // ==============================================================
+            // 聚焦到 SHA 输入框
+            hashInput.focus();
+
+        })();
+    </script>
 </body>
 </html>
