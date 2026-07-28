@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🧰 前端工具集 · 哈希 · 加密 · 绘图</title>
+    <title>前端工具集 · 哈希 · 加密 · 绘图</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Microsoft YaHei', '微软雅黑',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: #f4f7fc;
             min-height: 100vh;
             padding: 20px 16px;
@@ -263,12 +263,12 @@
 </head>
 <body>
     <div class="app">
-        <h1>🧰 前端工具集</h1>
-        <div class="sub">🔐 SHA‑256 哈希 · 🔑 AES 对称加密 · 📈 函数绘图（纯前端）</div>
+        <h1>前端工具集</h1>
+        <div class="sub">SHA‑256 哈希 · AES 对称加密 · 函数绘图（纯前端）</div>
 
         <!-- ======================== 工具1: SHA-256 ======================== -->
         <div class="card">
-            <h2>🔐 SHA‑256 哈希生成器 &amp; 验证器</h2>
+            <h2>SHA‑256 哈希生成器 &amp; 验证器</h2>
             <div class="row">
                 <div>
                     <div class="input-group">
@@ -299,7 +299,7 @@
 
         <!-- ======================== 工具2: 对称加密/解密 ======================== -->
         <div class="card">
-            <h2>🔑 对称加密 / 解密（AES‑GCM）</h2>
+            <h2>对称加密 / 解密（AES‑GCM）</h2>
             <div class="row">
                 <div>
                     <div class="input-group">
@@ -311,7 +311,7 @@
                         <input type="text" id="cryptoPlain" placeholder="要加密的文本" />
                     </div>
                     <div class="btn-group">
-                        <button class="btn" id="encryptBtn">🔒 加密</button>
+                        <button class="btn" id="encryptBtn">加密</button>
                         <button class="btn btn-secondary btn-sm" id="cryptoSampleBtn">示例</button>
                     </div>
                     <div class="result-box">
@@ -325,21 +325,21 @@
                         <input type="text" id="cryptoCipher" placeholder="粘贴密文..." />
                     </div>
                     <div class="btn-group">
-                        <button class="btn" id="decryptBtn">🔓 解密</button>
+                        <button class="btn" id="decryptBtn">解密</button>
                         <button class="btn btn-secondary btn-sm" id="cryptoClearBtn">清空</button>
                     </div>
                     <div class="result-box">
                         <span class="text" id="decryptResult">等待解密...</span>
                         <button class="copy-btn" id="copyDecryptBtn">复制</button>
                     </div>
-                    <div class="hint">💡 使用 AES‑GCM 256 位，每次加密生成随机 IV，密文格式：<code>IV(12字节Base64) + 密文 + Tag</code></div>
+                    <div class="hint">说明：使用 AES‑GCM 256 位，每次加密生成随机 IV，密文格式：<code>IV(12字节Base64) + 密文 + Tag</code></div>
                 </div>
             </div>
         </div>
 
         <!-- ======================== 工具3: 函数可视化 ======================== -->
         <div class="card">
-            <h2>📈 函数可视化</h2>
+            <h2>函数可视化</h2>
             <div class="row" style="grid-template-columns: 1fr 1fr auto;">
                 <div class="input-group" style="margin-bottom:0;">
                     <label>f(x) =</label>
@@ -375,7 +375,7 @@
             <div class="canvas-wrapper">
                 <canvas id="functionCanvas" width="600" height="450"></canvas>
             </div>
-            <div class="canvas-hint" id="canvasHint">🖱️ 鼠标悬停显示坐标</div>
+            <div class="canvas-hint" id="canvasHint">鼠标悬停显示坐标</div>
         </div>
         <p>
                   2026 © Qianchenawa. All rights reserved.    Open source on <a href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
@@ -410,13 +410,13 @@
 
             async function handleHash() {
                 const text = hashInput.value.trim();
-                if (!text) { hashResult.textContent = '⚠️ 请输入文本'; return; }
-                hashResult.textContent = '⏳ 计算中...';
+                if (!text) { hashResult.textContent = '请输入文本'; return; }
+                hashResult.textContent = '计算中...';
                 try {
                     const hash = await sha256(text);
                     hashResult.textContent = hash;
                 } catch (e) {
-                    hashResult.textContent = '❌ ' + e.message;
+                    hashResult.textContent = '错误' + e.message;
                 }
             }
 
@@ -426,10 +426,10 @@
 
             copyHashBtn.addEventListener('click', () => {
                 const txt = hashResult.textContent;
-                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                if (txt && !txt.startsWith('警告') && !txt.startsWith('请稍等...') && !txt.startsWith('错误！')) {
                     navigator.clipboard.writeText(txt).then(() => {
                         const orig = copyHashBtn.textContent;
-                        copyHashBtn.textContent = '✅ 已复制';
+                        copyHashBtn.textContent = '已复制';
                         setTimeout(() => copyHashBtn.textContent = orig, 1500);
                     }).catch(() => { alert('复制失败，请手动复制'); });
                 }
@@ -445,19 +445,19 @@
             verifyBtn.addEventListener('click', async () => {
                 const orig = verifyOriginal.value.trim();
                 const expected = verifyHash.value.trim();
-                if (!orig || !expected) { verifyResult.textContent = '⚠️ 请填写原文和哈希值';
+                if (!orig || !expected) { verifyResult.textContent = '请填写原文和哈希值';
                     verifyResult.className = 'verify-result fail'; return; }
                 try {
                     const hash = await sha256(orig);
                     if (hash === expected) {
-                        verifyResult.textContent = '✅ 验证通过！原文匹配哈希。';
+                        verifyResult.textContent = '验证通过！原文匹配哈希。';
                         verifyResult.className = 'verify-result success';
                     } else {
-                        verifyResult.textContent = '❌ 验证失败！哈希不匹配。';
+                        verifyResult.textContent = '验证失败！哈希不匹配。';
                         verifyResult.className = 'verify-result fail';
                     }
                 } catch (e) {
-                    verifyResult.textContent = '❌ 错误：' + e.message;
+                    verifyResult.textContent = '错误：' + e.message;
                     verifyResult.className = 'verify-result fail';
                 }
             });
@@ -529,37 +529,37 @@
             encryptBtn.addEventListener('click', async () => {
                 const password = cryptoPassword.value.trim();
                 const plain = cryptoPlain.value.trim();
-                if (!password) { encryptResult.textContent = '⚠️ 请输入密码'; return; }
-                if (!plain) { encryptResult.textContent = '⚠️ 请输入要加密的文本'; return; }
+                if (!password) { encryptResult.textContent = '请输入密码'; return; }
+                if (!plain) { encryptResult.textContent = '请输入要加密的文本'; return; }
                 try {
-                    encryptResult.textContent = '⏳ 加密中...';
+                    encryptResult.textContent = '加密中...';
                     const encrypted = await encryptText(plain, password);
                     encryptResult.textContent = encrypted;
                 } catch (e) {
-                    encryptResult.textContent = '❌ ' + e.message;
+                    encryptResult.textContent = '错误' + e.message;
                 }
             });
 
             decryptBtn.addEventListener('click', async () => {
                 const password = cryptoPassword.value.trim();
                 const cipher = cryptoCipher.value.trim();
-                if (!password) { decryptResult.textContent = '⚠️ 请输入密码'; return; }
-                if (!cipher) { decryptResult.textContent = '⚠️ 请输入密文'; return; }
+                if (!password) { decryptResult.textContent = '请输入密码'; return; }
+                if (!cipher) { decryptResult.textContent = '请输入密文'; return; }
                 try {
-                    decryptResult.textContent = '⏳ 解密中...';
+                    decryptResult.textContent = '解密中...';
                     const plain = await decryptText(cipher, password);
                     decryptResult.textContent = plain;
                 } catch (e) {
-                    decryptResult.textContent = '❌ 解密失败，请检查密码和密文格式';
+                    decryptResult.textContent = '解密失败，请检查密码和密文格式';
                 }
             });
 
             copyEncryptBtn.addEventListener('click', () => {
                 const txt = encryptResult.textContent;
-                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                if (txt && !txt.startsWith('警告') && !txt.startsWith('请稍等...') && !txt.startsWith('错误！')) {
                     navigator.clipboard.writeText(txt).then(() => {
                         const orig = copyEncryptBtn.textContent;
-                        copyEncryptBtn.textContent = '✅ 已复制';
+                        copyEncryptBtn.textContent = '已复制';
                         setTimeout(() => copyEncryptBtn.textContent = orig, 1500);
                     });
                 }
@@ -567,10 +567,10 @@
 
             copyDecryptBtn.addEventListener('click', () => {
                 const txt = decryptResult.textContent;
-                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                if (txt && !txt.startsWith('警告') && !txt.startsWith('请稍等...') && !txt.startsWith('错误！')) {
                     navigator.clipboard.writeText(txt).then(() => {
                         const orig = copyDecryptBtn.textContent;
-                        copyDecryptBtn.textContent = '✅ 已复制';
+                        copyDecryptBtn.textContent = '已复制';
                         setTimeout(() => copyDecryptBtn.textContent = orig, 1500);
                     });
                 }
@@ -742,7 +742,7 @@
                 ctx.stroke();
 
                 ctx.restore();
-                canvasHint.textContent = `📊 x:[${xMin.toFixed(2)},${xMax.toFixed(2)}]  y:[${yMin.toFixed(2)},${yMax.toFixed(2)}]  点数:${data.length}`;
+                canvasHint.textContent = `图表 x:[${xMin.toFixed(2)},${xMax.toFixed(2)}]  y:[${yMin.toFixed(2)},${yMax.toFixed(2)}]  点数:${data.length}`;
             }
 
             // 鼠标交互
@@ -762,13 +762,13 @@
                     realY = fn(x);
                 } catch (e) { /* ignore */ }
                 if (realY !== null && isFinite(realY)) {
-                    canvasHint.textContent = `📍 x = ${x.toFixed(4)},  f(x) = ${realY.toFixed(4)}`;
+                    canvasHint.textContent = `Pos x = ${x.toFixed(4)},  f(x) = ${realY.toFixed(4)}`;
                 } else {
-                    canvasHint.textContent = `📍 x = ${x.toFixed(4)}`;
+                    canvasHint.textContent = `Pos x = ${x.toFixed(4)}`;
                 }
             });
             canvas.addEventListener('mouseleave', () => {
-                canvasHint.textContent = '🖱️ 鼠标悬停显示坐标';
+                canvasHint.textContent = '鼠标悬停显示坐标';
             });
 
             drawBtn.addEventListener('click', drawFunction);
