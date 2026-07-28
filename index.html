@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🔐 SHA-256 加密器 + 📈 函数可视化</title>
+    <title>🧰 前端工具集 · 哈希 · 加密 · 绘图</title>
     <style>
-        /* ----- 全局重置 & 基础 ----- */
         * {
             margin: 0;
             padding: 0;
@@ -14,16 +13,16 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #f8fafc;
+            background: #f4f7fc;
             min-height: 100vh;
-            padding: 24px 16px;
+            padding: 20px 16px;
             display: flex;
             justify-content: center;
             align-items: flex-start;
         }
 
         .app {
-            max-width: 1100px;
+            max-width: 900px;
             width: 100%;
             background: #ffffff;
             border-radius: 28px;
@@ -37,37 +36,29 @@
             color: #0f172a;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 6px;
+            gap: 10px;
+            margin-bottom: 4px;
         }
 
         .sub {
             color: #64748b;
             font-size: 15px;
-            margin-bottom: 28px;
+            margin-bottom: 26px;
             border-bottom: 2px solid #e9edf2;
             padding-bottom: 14px;
         }
 
-        /* ----- 双列布局 ----- */
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
-
-        @media (max-width: 720px) {
-            .row {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-        }
-
+        /* ----- 卡片通用 ----- */
         .card {
             background: #f9fbfd;
             border-radius: 20px;
             padding: 20px 22px 26px;
             border: 1px solid #eef2f6;
+            margin-bottom: 28px;
+        }
+
+        .card:last-child {
+            margin-bottom: 0;
         }
 
         .card h2 {
@@ -80,16 +71,31 @@
             gap: 8px;
         }
 
-        /* ----- SHA-256 样式 ----- */
-        .hash-input-area {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
-        .hash-input-area input {
-            flex: 1;
+        @media (max-width: 640px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ----- 表单控件 ----- */
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"] {
+            width: 100%;
             padding: 10px 14px;
             border: 2px solid #dce2ea;
             border-radius: 12px;
@@ -97,15 +103,19 @@
             background: white;
             outline: none;
             transition: border-color 0.2s;
-            min-width: 160px;
+            font-family: inherit;
         }
 
-        .hash-input-area input:focus {
+        input:focus {
             border-color: #3b82f6;
         }
 
-        .hash-input-area button {
-            padding: 10px 20px;
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 10px 22px;
             background: #3b82f6;
             color: white;
             border: none;
@@ -117,14 +127,38 @@
             white-space: nowrap;
         }
 
-        .hash-input-area button:hover {
+        .btn:hover {
             background: #2563eb;
         }
-        .hash-input-area button:active {
+        .btn:active {
             transform: scale(0.96);
         }
+        .btn-secondary {
+            background: #eef2f6;
+            color: #1e293b;
+        }
+        .btn-secondary:hover {
+            background: #dce2ea;
+        }
+        .btn-sm {
+            padding: 6px 16px;
+            font-size: 13px;
+        }
+        .btn-danger {
+            background: #ef4444;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
 
-        .hash-result {
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .result-box {
             background: white;
             border-radius: 12px;
             padding: 12px 16px;
@@ -133,19 +167,20 @@
             font-size: 14px;
             word-break: break-all;
             color: #0f172a;
-            min-height: 52px;
+            min-height: 48px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            margin-top: 8px;
         }
 
-        .hash-result .hash-text {
+        .result-box .text {
             flex: 1;
             line-height: 1.6;
         }
 
-        .hash-result .copy-btn {
+        .result-box .copy-btn {
             background: #eef2f6;
             border: none;
             padding: 4px 14px;
@@ -156,123 +191,35 @@
             transition: background 0.2s;
             white-space: nowrap;
         }
-
-        .hash-result .copy-btn:hover {
+        .result-box .copy-btn:hover {
             background: #dce2ea;
         }
 
-        .hash-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .hash-actions button {
-            padding: 6px 18px;
-            border: none;
-            border-radius: 20px;
-            background: #eef2f6;
+        .hint {
             font-size: 13px;
-            cursor: pointer;
-            color: #334155;
-            transition: background 0.2s;
+            color: #94a3b8;
+            margin-top: 6px;
         }
 
-        .hash-actions button:hover {
-            background: #dce2ea;
+        .verify-result {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 8px;
         }
-        .hash-actions .clear-btn {
+        .verify-result.success {
+            color: #16a34a;
+        }
+        .verify-result.fail {
             color: #dc2626;
         }
-        .hash-actions .clear-btn:hover {
-            background: #fee2e2;
-        }
 
-        /* ----- 函数可视化样式 ----- */
-        .viz-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 14px;
-            margin-bottom: 14px;
-            align-items: flex-end;
-        }
-
-        .viz-controls .field {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            flex: 1 0 100px;
-        }
-
-        .viz-controls .field label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #475569;
-            letter-spacing: 0.3px;
-        }
-
-        .viz-controls .field input {
-            padding: 8px 12px;
-            border: 2px solid #dce2ea;
-            border-radius: 10px;
-            font-size: 14px;
-            background: white;
-            outline: none;
-            transition: border-color 0.2s;
-            width: 100%;
-        }
-
-        .viz-controls .field input:focus {
-            border-color: #3b82f6;
-        }
-
-        .viz-controls .field input[type="number"] {
-            width: 100px;
-        }
-
-        .viz-btn-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-top: 4px;
-        }
-
-        .viz-btn-group button {
-            padding: 8px 18px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .viz-btn-group button:hover {
-            background: #2563eb;
-        }
-
-        .viz-btn-group .sample-btn {
-            background: #eef2f6;
-            color: #1e293b;
-            font-size: 13px;
-            padding: 6px 14px;
-        }
-
-        .viz-btn-group .sample-btn:hover {
-            background: #dce2ea;
-        }
-
+        /* ----- 函数可视化专用 ----- */
         .canvas-wrapper {
             background: white;
             border-radius: 14px;
             border: 1px solid #e2e8f0;
             overflow: hidden;
             margin-top: 6px;
-            position: relative;
         }
 
         canvas#functionCanvas {
@@ -291,85 +238,141 @@
             text-align: center;
         }
 
-        /* ----- 通用 ----- */
-        .flex-between {
+        .sample-btns {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
         }
-
-        .mt-2 {
-            margin-top: 12px;
-        }
-
-        .text-muted {
-            color: #94a3b8;
+        .sample-btns button {
+            padding: 4px 12px;
+            border: 1px solid #dce2ea;
+            border-radius: 16px;
+            background: white;
             font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .sample-btns button:hover {
+            background: #eef2f6;
         }
     </style>
 </head>
 <body>
     <div class="app">
         <h1>🧰 前端工具集</h1>
-        <div class="sub">🔐 SHA-256 加密 ｜ 📈 函数可视化（纯前端，数据不上传）</div>
+        <div class="sub">🔐 SHA‑256 哈希 · 🔑 AES 对称加密 · 📈 函数绘图（纯前端）</div>
 
-        <div class="row">
-            <!-- ============ SHA-256 加密器 ============ -->
-            <div class="card">
-                <h2>🔐 SHA-256 加密器</h2>
-                <div class="hash-input-area">
-                    <input type="text" id="hashInput" placeholder="输入要加密的文本..." autofocus />
-                    <button id="hashBtn">加密</button>
+        <!-- ======================== 工具1: SHA-256 ======================== -->
+        <div class="card">
+            <h2>🔐 SHA‑256 哈希生成器 &amp; 验证器</h2>
+            <div class="row">
+                <div>
+                    <div class="input-group">
+                        <label>输入文本</label>
+                        <input type="text" id="hashInput" placeholder="输入要哈希的文本..." />
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" id="hashBtn">生成哈希</button>
+                        <button class="btn btn-secondary btn-sm" id="hashSampleBtn">示例</button>
+                        <button class="btn btn-secondary btn-sm" id="hashClearBtn">清空</button>
+                    </div>
+                    <div class="result-box">
+                        <span class="text" id="hashResult">等待计算...</span>
+                        <button class="copy-btn" id="copyHashBtn">复制</button>
+                    </div>
                 </div>
-                <div class="hash-result">
-                    <span class="hash-text" id="hashResult">等待计算...</span>
-                    <button class="copy-btn" id="copyHashBtn">复制</button>
-                </div>
-                <div class="hash-actions">
-                    <button class="clear-btn" id="clearHashBtn">清空</button>
-                    <button id="sampleHashBtn" style="background:#eef2f6;">示例文本</button>
-                </div>
-                <div style="margin-top:14px; font-size:13px; color:#64748b;">
-                    ⚡ 使用 Web Crypto API，浏览器原生计算。
+                <div>
+                    <div class="input-group">
+                        <label>验证哈希（输入原文和哈希值）</label>
+                        <input type="text" id="verifyOriginal" placeholder="原文" style="margin-bottom:6px;" />
+                        <input type="text" id="verifyHash" placeholder="哈希值" />
+                    </div>
+                    <button class="btn btn-sm" id="verifyBtn">验证</button>
+                    <div id="verifyResult" class="verify-result"></div>
                 </div>
             </div>
+        </div>
 
-            <!-- ============ 函数可视化 ============ -->
-            <div class="card">
-                <h2>📈 函数可视化</h2>
-                <div class="viz-controls">
-                    <div class="field">
-                        <label>函数 f(x) =</label>
-                        <input type="text" id="funcInput" value="Math.sin(x)" placeholder="例如 x*x" />
+        <!-- ======================== 工具2: 对称加密/解密 ======================== -->
+        <div class="card">
+            <h2>🔑 对称加密 / 解密（AES‑GCM）</h2>
+            <div class="row">
+                <div>
+                    <div class="input-group">
+                        <label>密码（加密/解密共用）</label>
+                        <input type="password" id="cryptoPassword" placeholder="输入密码" />
                     </div>
-                    <div class="field" style="flex:0 0 80px;">
-                        <label>X 最小值</label>
+                    <div class="input-group">
+                        <label>原文（加密时填写）</label>
+                        <input type="text" id="cryptoPlain" placeholder="要加密的文本" />
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" id="encryptBtn">🔒 加密</button>
+                        <button class="btn btn-secondary btn-sm" id="cryptoSampleBtn">示例</button>
+                    </div>
+                    <div class="result-box">
+                        <span class="text" id="encryptResult">等待加密...</span>
+                        <button class="copy-btn" id="copyEncryptBtn">复制</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="input-group">
+                        <label>密文（Base64，解密时粘贴）</label>
+                        <input type="text" id="cryptoCipher" placeholder="粘贴密文..." />
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" id="decryptBtn">🔓 解密</button>
+                        <button class="btn btn-secondary btn-sm" id="cryptoClearBtn">清空</button>
+                    </div>
+                    <div class="result-box">
+                        <span class="text" id="decryptResult">等待解密...</span>
+                        <button class="copy-btn" id="copyDecryptBtn">复制</button>
+                    </div>
+                    <div class="hint">💡 使用 AES‑GCM 256 位，每次加密生成随机 IV，密文格式：<code>IV(12字节Base64) + 密文 + Tag</code></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== 工具3: 函数可视化 ======================== -->
+        <div class="card">
+            <h2>📈 函数可视化</h2>
+            <div class="row" style="grid-template-columns: 1fr 1fr auto;">
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>f(x) =</label>
+                    <input type="text" id="funcInput" value="Math.sin(x)" />
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="input-group" style="flex:1; min-width:70px;">
+                        <label>X 最小</label>
                         <input type="number" id="xMin" value="-6.28" step="0.1" />
                     </div>
-                    <div class="field" style="flex:0 0 80px;">
-                        <label>X 最大值</label>
+                    <div class="input-group" style="flex:1; min-width:70px;">
+                        <label>X 最大</label>
                         <input type="number" id="xMax" value="6.28" step="0.1" />
                     </div>
-                    <div class="field" style="flex:0 0 80px;">
+                    <div class="input-group" style="flex:1; min-width:70px;">
                         <label>点数</label>
                         <input type="number" id="points" value="200" step="10" min="10" max="1000" />
                     </div>
                 </div>
-                <div class="viz-btn-group">
-                    <button id="drawBtn">绘制</button>
-                    <button class="sample-btn" data-fn="Math.sin(x)">sin(x)</button>
-                    <button class="sample-btn" data-fn="x*x">x²</button>
-                    <button class="sample-btn" data-fn="Math.cos(x)">cos(x)</button>
-                    <button class="sample-btn" data-fn="2*x+1">2x+1</button>
-                    <button class="sample-btn" data-fn="Math.tan(x)">tan(x)</button>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="functionCanvas" width="600" height="450"></canvas>
-                </div>
-                <div class="canvas-hint">
-                    🖱️ 鼠标悬停显示坐标值（正在绘制...）
+                <div style="display:flex; align-items:flex-end; gap:8px;">
+                    <button class="btn" id="drawBtn">绘制</button>
                 </div>
             </div>
+            <div class="sample-btns">
+                <button data-fn="Math.sin(x)">sin(x)</button>
+                <button data-fn="x*x">x²</button>
+                <button data-fn="Math.cos(x)">cos(x)</button>
+                <button data-fn="2*x+1">2x+1</button>
+                <button data-fn="Math.tan(x)">tan(x)</button>
+                <button data-fn="Math.exp(x)">e^x</button>
+                <button data-fn="Math.log(x+1)">ln(x+1)</button>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="functionCanvas" width="600" height="450"></canvas>
+            </div>
+            <div class="canvas-hint" id="canvasHint">🖱️ 鼠标悬停显示坐标</div>
         </div>
     </div>
 
@@ -378,16 +381,19 @@
             'use strict';
 
             // ==============================================================
-            //  1. SHA-256 加密器
+            //  工具1: SHA-256 哈希 + 验证
             // ==============================================================
             const hashInput = document.getElementById('hashInput');
             const hashBtn = document.getElementById('hashBtn');
             const hashResult = document.getElementById('hashResult');
             const copyHashBtn = document.getElementById('copyHashBtn');
-            const clearHashBtn = document.getElementById('clearHashBtn');
-            const sampleHashBtn = document.getElementById('sampleHashBtn');
+            const hashClearBtn = document.getElementById('hashClearBtn');
+            const hashSampleBtn = document.getElementById('hashSampleBtn');
+            const verifyOriginal = document.getElementById('verifyOriginal');
+            const verifyHash = document.getElementById('verifyHash');
+            const verifyBtn = document.getElementById('verifyBtn');
+            const verifyResult = document.getElementById('verifyResult');
 
-            // 使用 Web Crypto API 计算 SHA-256
             async function sha256(message) {
                 const encoder = new TextEncoder();
                 const data = encoder.encode(message);
@@ -398,64 +404,188 @@
 
             async function handleHash() {
                 const text = hashInput.value.trim();
-                if (!text) {
-                    hashResult.textContent = '⚠️ 请输入要加密的文本';
-                    return;
-                }
+                if (!text) { hashResult.textContent = '⚠️ 请输入文本'; return; }
                 hashResult.textContent = '⏳ 计算中...';
                 try {
                     const hash = await sha256(text);
                     hashResult.textContent = hash;
-                } catch (err) {
-                    hashResult.textContent = '❌ 加密失败：' + err.message;
+                } catch (e) {
+                    hashResult.textContent = '❌ ' + e.message;
                 }
             }
 
             hashBtn.addEventListener('click', handleHash);
-            hashInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleHash();
-                }
-            });
+            hashInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault();
+                    handleHash(); } });
 
             copyHashBtn.addEventListener('click', () => {
-                const text = hashResult.textContent;
-                if (text && !text.startsWith('⚠️') && !text.startsWith('⏳') && !text.startsWith('❌')) {
-                    navigator.clipboard.writeText(text).then(() => {
+                const txt = hashResult.textContent;
+                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                    navigator.clipboard.writeText(txt).then(() => {
                         const orig = copyHashBtn.textContent;
                         copyHashBtn.textContent = '✅ 已复制';
-                        setTimeout(() => { copyHashBtn.textContent = orig; }, 1500);
-                    }).catch(() => {
-                        // fallback
-                        const range = document.createRange();
-                        range.selectNode(hashResult);
-                        window.getSelection().removeAllRanges();
-                        window.getSelection().addRange(range);
-                        document.execCommand('copy');
-                        window.getSelection().removeAllRanges();
-                        const orig = copyHashBtn.textContent;
-                        copyHashBtn.textContent = '✅ 已复制';
-                        setTimeout(() => { copyHashBtn.textContent = orig; }, 1500);
-                    });
-                } else {
-                    alert('没有可复制的内容');
+                        setTimeout(() => copyHashBtn.textContent = orig, 1500);
+                    }).catch(() => { alert('复制失败，请手动复制'); });
                 }
             });
 
-            clearHashBtn.addEventListener('click', () => {
-                hashInput.value = '';
+            hashClearBtn.addEventListener('click', () => { hashInput.value = '';
                 hashResult.textContent = '等待计算...';
-                hashInput.focus();
-            });
+                hashInput.focus(); });
+            hashSampleBtn.addEventListener('click', () => { hashInput.value = 'Hello, 前端工具!';
+                handleHash(); });
 
-            sampleHashBtn.addEventListener('click', () => {
-                hashInput.value = 'Hello, 前端工具!';
-                handleHash();
+            // 验证
+            verifyBtn.addEventListener('click', async () => {
+                const orig = verifyOriginal.value.trim();
+                const expected = verifyHash.value.trim();
+                if (!orig || !expected) { verifyResult.textContent = '⚠️ 请填写原文和哈希值';
+                    verifyResult.className = 'verify-result fail'; return; }
+                try {
+                    const hash = await sha256(orig);
+                    if (hash === expected) {
+                        verifyResult.textContent = '✅ 验证通过！原文匹配哈希。';
+                        verifyResult.className = 'verify-result success';
+                    } else {
+                        verifyResult.textContent = '❌ 验证失败！哈希不匹配。';
+                        verifyResult.className = 'verify-result fail';
+                    }
+                } catch (e) {
+                    verifyResult.textContent = '❌ 错误：' + e.message;
+                    verifyResult.className = 'verify-result fail';
+                }
             });
 
             // ==============================================================
-            //  2. 函数可视化 (Canvas)
+            //  工具2: 对称加密/解密 (AES-GCM)
+            // ==============================================================
+            const cryptoPassword = document.getElementById('cryptoPassword');
+            const cryptoPlain = document.getElementById('cryptoPlain');
+            const encryptBtn = document.getElementById('encryptBtn');
+            const encryptResult = document.getElementById('encryptResult');
+            const copyEncryptBtn = document.getElementById('copyEncryptBtn');
+            const cryptoSampleBtn = document.getElementById('cryptoSampleBtn');
+            const cryptoCipher = document.getElementById('cryptoCipher');
+            const decryptBtn = document.getElementById('decryptBtn');
+            const decryptResult = document.getElementById('decryptResult');
+            const copyDecryptBtn = document.getElementById('copyDecryptBtn');
+            const cryptoClearBtn = document.getElementById('cryptoClearBtn');
+
+            // 从密码派生密钥 (PBKDF2)
+            async function getKey(password, salt) {
+                const enc = new TextEncoder();
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+                );
+                return crypto.subtle.deriveKey({
+                        name: 'PBKDF2',
+                        salt: salt,
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial, { name: 'AES-GCM', length: 256 },
+                    false, ['encrypt', 'decrypt']
+                );
+            }
+
+            // 加密
+            async function encryptText(plaintext, password) {
+                const salt = crypto.getRandomValues(new Uint8Array(16));
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await getKey(password, salt);
+                const enc = new TextEncoder();
+                const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv },
+                    key,
+                    enc.encode(plaintext)
+                );
+                // 拼接 salt + iv + ciphertext (全部转为Base64)
+                const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+                combined.set(salt, 0);
+                combined.set(iv, salt.length);
+                combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+                return btoa(String.fromCharCode(...combined));
+            }
+
+            // 解密
+            async function decryptText(base64Data, password) {
+                const combined = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                const salt = combined.slice(0, 16);
+                const iv = combined.slice(16, 28);
+                const ciphertext = combined.slice(28);
+                const key = await getKey(password, salt);
+                const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv },
+                    key,
+                    ciphertext
+                );
+                return new TextDecoder().decode(decrypted);
+            }
+
+            encryptBtn.addEventListener('click', async () => {
+                const password = cryptoPassword.value.trim();
+                const plain = cryptoPlain.value.trim();
+                if (!password) { encryptResult.textContent = '⚠️ 请输入密码'; return; }
+                if (!plain) { encryptResult.textContent = '⚠️ 请输入要加密的文本'; return; }
+                try {
+                    encryptResult.textContent = '⏳ 加密中...';
+                    const encrypted = await encryptText(plain, password);
+                    encryptResult.textContent = encrypted;
+                } catch (e) {
+                    encryptResult.textContent = '❌ ' + e.message;
+                }
+            });
+
+            decryptBtn.addEventListener('click', async () => {
+                const password = cryptoPassword.value.trim();
+                const cipher = cryptoCipher.value.trim();
+                if (!password) { decryptResult.textContent = '⚠️ 请输入密码'; return; }
+                if (!cipher) { decryptResult.textContent = '⚠️ 请输入密文'; return; }
+                try {
+                    decryptResult.textContent = '⏳ 解密中...';
+                    const plain = await decryptText(cipher, password);
+                    decryptResult.textContent = plain;
+                } catch (e) {
+                    decryptResult.textContent = '❌ 解密失败，请检查密码和密文格式';
+                }
+            });
+
+            copyEncryptBtn.addEventListener('click', () => {
+                const txt = encryptResult.textContent;
+                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                    navigator.clipboard.writeText(txt).then(() => {
+                        const orig = copyEncryptBtn.textContent;
+                        copyEncryptBtn.textContent = '✅ 已复制';
+                        setTimeout(() => copyEncryptBtn.textContent = orig, 1500);
+                    });
+                }
+            });
+
+            copyDecryptBtn.addEventListener('click', () => {
+                const txt = decryptResult.textContent;
+                if (txt && !txt.startsWith('⚠️') && !txt.startsWith('⏳') && !txt.startsWith('❌')) {
+                    navigator.clipboard.writeText(txt).then(() => {
+                        const orig = copyDecryptBtn.textContent;
+                        copyDecryptBtn.textContent = '✅ 已复制';
+                        setTimeout(() => copyDecryptBtn.textContent = orig, 1500);
+                    });
+                }
+            });
+
+            cryptoSampleBtn.addEventListener('click', () => {
+                cryptoPassword.value = 'mySecret123';
+                cryptoPlain.value = 'Hello, 这是加密测试文本！';
+                encryptBtn.click();
+            });
+
+            cryptoClearBtn.addEventListener('click', () => {
+                cryptoPassword.value = '';
+                cryptoPlain.value = '';
+                cryptoCipher.value = '';
+                encryptResult.textContent = '等待加密...';
+                decryptResult.textContent = '等待解密...';
+            });
+
+            // ==============================================================
+            //  工具3: 函数可视化 (保留)
             // ==============================================================
             const canvas = document.getElementById('functionCanvas');
             const ctx = canvas.getContext('2d');
@@ -464,60 +594,40 @@
             const xMaxInput = document.getElementById('xMax');
             const pointsInput = document.getElementById('points');
             const drawBtn = document.getElementById('drawBtn');
+            const canvasHint = document.getElementById('canvasHint');
 
-            // 设置 Canvas 实际尺寸 (保持宽高比 4:3)
             function resizeCanvas() {
                 const rect = canvas.getBoundingClientRect();
-                // 保持绘图清晰，使用物理像素
                 const dpr = window.devicePixelRatio || 1;
                 const width = rect.width || 600;
-                const height = width * 0.75; // 4:3
+                const height = width * 0.75;
                 canvas.width = width * dpr;
                 canvas.height = height * dpr;
                 canvas.style.width = width + 'px';
                 canvas.style.height = height + 'px';
                 ctx.scale(dpr, dpr);
-                // 保存逻辑尺寸以便绘图
                 canvas._logicalWidth = width;
                 canvas._logicalHeight = height;
             }
 
-            // 绘制函数
+            let lastYMin = -1,
+                lastYMax = 1;
+
             function drawFunction() {
                 const expr = funcInput.value.trim();
-                if (!expr) {
-                    alert('请输入函数表达式');
-                    return;
-                }
+                if (!expr) { alert('请输入函数表达式'); return; }
                 const xMin = parseFloat(xMinInput.value);
                 const xMax = parseFloat(xMaxInput.value);
-                if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) {
-                    alert('请输入有效的 x 范围（最小值 < 最大值）');
-                    return;
-                }
-                let points = parseInt(pointsInput.value, 10);
-                if (isNaN(points) || points < 2) points = 100;
+                if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) { alert('请输入有效的范围'); return; }
+                let points = parseInt(pointsInput.value, 10) || 200;
+                if (points < 2) points = 2;
 
-                // 构建函数: 使用 Function 构造函数，将 x 作为参数
                 let fn;
-                try {
-                    fn = new Function('x', `"use strict"; return (${expr});`);
-                } catch (e) {
-                    alert('函数表达式有语法错误: ' + e.message);
+                try { fn = new Function('x', `"use strict"; return (${expr});`); } catch (e) {
+                    alert('函数语法错误: ' + e.message);
                     return;
                 }
 
-                // 测试几个点
-                try {
-                    fn(xMin);
-                    fn((xMin + xMax) / 2);
-                    fn(xMax);
-                } catch (e) {
-                    alert('函数计算错误: ' + e.message);
-                    return;
-                }
-
-                // 计算数据点
                 const step = (xMax - xMin) / (points - 1);
                 const data = [];
                 let yMin = Infinity,
@@ -525,63 +635,39 @@
                 for (let i = 0; i < points; i++) {
                     const x = xMin + i * step;
                     let y;
-                    try {
-                        y = fn(x);
-                    } catch (e) {
-                        y = NaN;
-                    }
-                    if (typeof y !== 'number' || !isFinite(y)) {
-                        data.push({ x, y: NaN });
-                    } else {
+                    try { y = fn(x); } catch (e) { y = NaN; }
+                    if (typeof y === 'number' && isFinite(y)) {
                         data.push({ x, y });
                         if (y < yMin) yMin = y;
                         if (y > yMax) yMax = y;
+                    } else {
+                        data.push({ x, y: NaN });
                     }
                 }
-
-                // 如果所有点都是 NaN
-                if (yMin === Infinity) {
-                    alert('函数在所有采样点上都无效（NaN 或 Infinity）');
-                    return;
-                }
-
-                // 适当扩展 y 范围，留白
+                if (yMin === Infinity) { yMin = -1;
+                    yMax = 1; }
                 const yRange = yMax - yMin;
-                if (yRange === 0) {
-                    yMin -= 1;
-                    yMax += 1;
-                } else {
+                if (yRange === 0) { yMin -= 1;
+                    yMax += 1; } else {
                     const pad = yRange * 0.1;
                     yMin -= pad;
                     yMax += pad;
                 }
+                lastYMin = yMin;
+                lastYMax = yMax;
 
-                // 准备绘制
                 const W = canvas._logicalWidth;
                 const H = canvas._logicalHeight;
                 ctx.clearRect(0, 0, W, H);
 
-                // ---- 绘制网格和坐标轴 ----
+                function xToPixel(x) { return ((x - xMin) / (xMax - xMin)) * W; }
+
+                function yToPixel(y) { return H - ((y - yMin) / (yMax - yMin)) * H; }
+
+                // 网格
                 ctx.save();
-
-                // 背景
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, W, H);
-
-                // 坐标变换：将数据坐标 (x,y) 映射到 canvas 像素
-                function xToPixel(x) {
-                    return ((x - xMin) / (xMax - xMin)) * W;
-                }
-
-                function yToPixel(y) {
-                    return H - ((y - yMin) / (yMax - yMin)) * H;
-                }
-
-                // 绘制网格线（浅灰）
                 ctx.strokeStyle = '#e9edf2';
                 ctx.lineWidth = 0.5;
-
-                // 垂直网格（根据范围自动选择步长）
                 const xStep = Math.pow(10, Math.floor(Math.log10((xMax - xMin) / 5)));
                 let xGrid = Math.ceil(xMin / xStep) * xStep;
                 while (xGrid <= xMax) {
@@ -590,7 +676,6 @@
                     ctx.moveTo(px, 0);
                     ctx.lineTo(px, H);
                     ctx.stroke();
-                    // 标数字
                     ctx.fillStyle = '#94a3b8';
                     ctx.font = '10px sans-serif';
                     ctx.textAlign = 'center';
@@ -599,8 +684,6 @@
                     ctx.fillText(label, px, H - 14);
                     xGrid += xStep;
                 }
-
-                // 水平网格
                 const yStep = Math.pow(10, Math.floor(Math.log10((yMax - yMin) / 5)));
                 let yGrid = Math.ceil(yMin / yStep) * yStep;
                 while (yGrid <= yMax) {
@@ -618,10 +701,9 @@
                     yGrid += yStep;
                 }
 
-                // 绘制坐标轴（黑色实线）
+                // 坐标轴
                 ctx.strokeStyle = '#334155';
                 ctx.lineWidth = 1.5;
-                // x轴 (y=0)
                 if (yMin <= 0 && yMax >= 0) {
                     const py0 = yToPixel(0);
                     ctx.beginPath();
@@ -629,7 +711,6 @@
                     ctx.lineTo(W, py0);
                     ctx.stroke();
                 }
-                // y轴 (x=0)
                 if (xMin <= 0 && xMax >= 0) {
                     const px0 = xToPixel(0);
                     ctx.beginPath();
@@ -638,181 +719,77 @@
                     ctx.stroke();
                 }
 
-                // ---- 绘制函数曲线 ----
+                // 曲线
                 ctx.beginPath();
                 ctx.strokeStyle = '#2563eb';
                 ctx.lineWidth = 3;
                 let started = false;
                 for (let i = 0; i < data.length; i++) {
                     const d = data[i];
-                    if (isNaN(d.y)) {
-                        started = false;
-                        continue;
-                    }
+                    if (isNaN(d.y)) { started = false; continue; }
                     const px = xToPixel(d.x);
                     const py = yToPixel(d.y);
-                    // 裁剪边界，防止溢出
-                    if (px < 0 || px > W || py < 0 || py > H) {
-                        // 可画但保持连线，但为了美观，跳过极端点
-                        // 这里我们简单跳过超出画布的点，避免线条飞出
-                        // 更好的做法是裁剪，但简单跳过可能导致断线，但可接受
-                        started = false;
-                        continue;
-                    }
-                    if (!started) {
-                        ctx.moveTo(px, py);
-                        started = true;
-                    } else {
-                        ctx.lineTo(px, py);
-                    }
+                    if (px < 0 || px > W || py < 0 || py > H) { started = false; continue; }
+                    if (!started) { ctx.moveTo(px, py);
+                        started = true; } else ctx.lineTo(px, py);
                 }
                 ctx.stroke();
 
-                // 绘制数据点（可选小圆点）
-                ctx.fillStyle = '#2563eb';
-                for (let i = 0; i < data.length; i++) {
-                    const d = data[i];
-                    if (isNaN(d.y)) continue;
-                    const px = xToPixel(d.x);
-                    const py = yToPixel(d.y);
-                    if (px < 0 || px > W || py < 0 || py > H) continue;
-                    ctx.beginPath();
-                    ctx.arc(px, py, 1.5, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-
                 ctx.restore();
-
-                // 显示坐标信息（鼠标悬停）
-                // 更新提示
-                const hint = document.querySelector('.canvas-hint');
-                hint.textContent = `📊 范围 x: [${xMin.toFixed(2)}, ${xMax.toFixed(2)}]  y: [${yMin.toFixed(2)}, ${yMax.toFixed(2)}]  采样点: ${data.length}`;
+                canvasHint.textContent = `📊 x:[${xMin.toFixed(2)},${xMax.toFixed(2)}]  y:[${yMin.toFixed(2)},${yMax.toFixed(2)}]  点数:${data.length}`;
             }
 
-            // 画布事件：鼠标移动显示坐标
-            function setupCanvasInteraction() {
-                canvas.addEventListener('mousemove', (e) => {
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas._logicalWidth / rect.width;
-                    const scaleY = canvas._logicalHeight / rect.height;
-                    const mx = (e.clientX - rect.left) * scaleX;
-                    const my = (e.clientY - rect.top) * scaleY;
-                    // 计算数据坐标 (需知道当前范围)
-                    const xMin = parseFloat(xMinInput.value);
-                    const xMax = parseFloat(xMaxInput.value);
-                    // 我们需要知道 yMin, yMax ？但我们没有存储，可以用画布上的坐标反推，但需要知道上次绘制的 yMin/yMax。
-                    // 简单起见，我们只显示 x 坐标，y 坐标从函数计算（但需要函数表达式）
-                    // 更精确：存储上次绘制的 yMin/yMax 到全局变量
-                    if (typeof window._lastYMin === 'undefined') return;
-                    const yMin = window._lastYMin;
-                    const yMax = window._lastYMax;
-                    const x = xMin + (mx / canvas._logicalWidth) * (xMax - xMin);
-                    const y = yMin + (1 - my / canvas._logicalHeight) * (yMax - yMin);
-                    // 尝试用函数计算真实 y
-                    let realY = null;
-                    try {
-                        const fn = new Function('x', `"use strict"; return (${funcInput.value.trim()});`);
-                        realY = fn(x);
-                    } catch (e) { /* ignore */ }
-                    const hint = document.querySelector('.canvas-hint');
-                    if (realY !== null && isFinite(realY)) {
-                        hint.textContent = `📍 x = ${x.toFixed(4)},  f(x) = ${realY.toFixed(4)}`;
-                    } else {
-                        hint.textContent = `📍 x = ${x.toFixed(4)}`;
-                    }
-                });
-                canvas.addEventListener('mouseleave', () => {
-                    const hint = document.querySelector('.canvas-hint');
-                    hint.textContent = '🖱️ 鼠标悬停显示坐标值';
-                });
-            }
-
-            // 扩展绘制，存储 yMin/yMax
-            const originalDraw = drawFunction;
-            drawFunction = function() {
-                // 先计算范围，但不绘制，然后存储
-                const expr = funcInput.value.trim();
-                if (!expr) return;
+            // 鼠标交互
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas._logicalWidth / rect.width;
+                const scaleY = canvas._logicalHeight / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
                 const xMin = parseFloat(xMinInput.value);
                 const xMax = parseFloat(xMaxInput.value);
-                if (isNaN(xMin) || isNaN(xMax) || xMin >= xMax) return;
-                let points = parseInt(pointsInput.value, 10) || 100;
-                let fn;
+                const x = xMin + (mx / canvas._logicalWidth) * (xMax - xMin);
+                const y = lastYMin + (1 - my / canvas._logicalHeight) * (lastYMax - lastYMin);
+                let realY = null;
                 try {
-                    fn = new Function('x', `"use strict"; return (${expr});`);
-                } catch (e) { return; }
-                const step = (xMax - xMin) / (points - 1);
-                let yMin = Infinity,
-                    yMax = -Infinity;
-                for (let i = 0; i < points; i++) {
-                    const x = xMin + i * step;
-                    let y;
-                    try { y = fn(x); } catch (e) { y = NaN; }
-                    if (typeof y === 'number' && isFinite(y)) {
-                        if (y < yMin) yMin = y;
-                        if (y > yMax) yMax = y;
-                    }
+                    const fn = new Function('x', `"use strict"; return (${funcInput.value.trim()});`);
+                    realY = fn(x);
+                } catch (e) { /* ignore */ }
+                if (realY !== null && isFinite(realY)) {
+                    canvasHint.textContent = `📍 x = ${x.toFixed(4)},  f(x) = ${realY.toFixed(4)}`;
+                } else {
+                    canvasHint.textContent = `📍 x = ${x.toFixed(4)}`;
                 }
-                if (yMin === Infinity) { yMin = -1;
-                    yMax = 1; }
-                const yRange = yMax - yMin;
-                if (yRange === 0) { yMin -= 1;
-                    yMax += 1; } else {
-                    const pad = yRange * 0.1;
-                    yMin -= pad;
-                    yMax += pad;
-                }
-                window._lastYMin = yMin;
-                window._lastYMax = yMax;
-                originalDraw.call(this);
-            };
+            });
+            canvas.addEventListener('mouseleave', () => {
+                canvasHint.textContent = '🖱️ 鼠标悬停显示坐标';
+            });
 
-            // 绑定绘制事件
             drawBtn.addEventListener('click', drawFunction);
-
-            // 示例按钮
-            document.querySelectorAll('.sample-btn').forEach(btn => {
+            document.querySelectorAll('.sample-btns button').forEach(btn => {
                 btn.addEventListener('click', () => {
                     funcInput.value = btn.dataset.fn;
                     drawFunction();
                 });
             });
 
-            // 输入框回车触发绘制
-            funcInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
-                    drawFunction(); } });
-            xMinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
-                    drawFunction(); } });
-            xMaxInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
-                    drawFunction(); } });
-            pointsInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault();
-                    drawFunction(); } });
+            // 输入回车触发绘制
+            [funcInput, xMinInput, xMaxInput, pointsInput].forEach(el => {
+                el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault();
+                        drawFunction(); } });
+            });
+            [xMinInput, xMaxInput, pointsInput].forEach(el => el.addEventListener('change', drawFunction));
 
-            // 页面加载 & 窗口调整时重绘
             window.addEventListener('load', () => {
                 resizeCanvas();
-                // 默认绘制 sin(x)
                 drawFunction();
-                setupCanvasInteraction();
             });
-
             window.addEventListener('resize', () => {
                 resizeCanvas();
                 drawFunction();
             });
 
-            // 当输入数字变化时自动重绘（可选）
-            [xMinInput, xMaxInput, pointsInput].forEach(el => {
-                el.addEventListener('change', drawFunction);
-            });
-
-            // 暴露 resize 以便调试
-            window._resizeCanvas = resizeCanvas;
-
-            // ==============================================================
-            //  额外：复制哈希时也支持快捷键
-            // ==============================================================
-            // 聚焦到 SHA 输入框
+            // 初始聚焦
             hashInput.focus();
 
         })();
