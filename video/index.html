@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>视频</title>
+    <title>Blue Archive</title>
     <style>
         * {
             margin: 0;
@@ -66,7 +66,6 @@
             margin-bottom: 18px;
         }
 
-        /* ----- 按钮组样式 ----- */
         .btn-group {
             display: flex;
             flex-wrap: wrap;
@@ -136,7 +135,6 @@
         <div class="app">
             <div class="sub">Blue Archive 1st PV</div>
 
-            <!-- 视频播放器 -->
             <video id="player" controls autoplay loop playsinline>
                 <source src="video1.mp4" type="video/mp4">
                 Err: Your browser does not support the video tag.
@@ -161,40 +159,32 @@
             const buttons = document.querySelectorAll('#btnGroup .btn');
             const currentName = document.getElementById('currentName');
 
-            // 切换视频函数
             function switchVideo(btn) {
-                // 更新按钮高亮
                 buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // 获取视频地址和名称
                 const videoUrl = btn.dataset.video;
                 const name = btn.dataset.name || btn.textContent.trim();
 
-                // 更改视频源
                 video.src = videoUrl;
                 video.load();
 
-                // 尝试自动播放（若被阻止则忽略）
+
                 video.play().catch(() => {});
 
-                // 更新提示文字
                 currentName.textContent = name;
             }
 
-            // 绑定点击事件
             buttons.forEach(btn => {
                 btn.addEventListener('click', function() {
                     switchVideo(this);
                 });
             });
 
-            // 初始化：确保第一个按钮高亮且名称正确
             const activeBtn = document.querySelector('#btnGroup .btn.active');
             if (activeBtn) {
                 currentName.textContent = activeBtn.dataset.name || activeBtn.textContent.trim();
             } else {
-                // 若无高亮，默认第一个
                 const first = buttons[0];
                 if (first) {
                     first.classList.add('active');
