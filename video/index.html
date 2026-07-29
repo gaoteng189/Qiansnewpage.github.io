@@ -16,20 +16,48 @@
             min-height: 100vh;
             padding: 20px 16px;
         }
+        .hero {
+        background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/MefDndfh.jpeg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        min-height: 100vh;
+        }
+        @media (min-width: 1024px) {
+        .hero {
+            background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/gzp2DYV2.jpeg');
+            }
+        }
+        .bg {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            font-size: 2rem;
+            text-align: center;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            /* 默认移动端背景 */
+            background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/gzp2DYV2.jpeg');
+        }
     </style>
 </head>
     <body>
         <div class="app">
-            <h1>视频</h1>
+
             <div class="sub">视频播放测试</div>
 
             <video width="100%" height="auto" autoplay loop controls>
                 <source src="video.mp4" type="video/mp4">
-                您的浏览器不支持 HTML5 视频标签。
+                您的浏览器不支持 HTML5 视频标签
             </video>
             <audio width="100%" height="auto" autoplay loop controls>
                 <source src="back.ogg" type="audio/mpeg">
-                您的浏览器不支持 HTML5 音频标签。
+                您的浏览器不支持 HTML5 音频标签
             </audio>
         </div>
     </body>
