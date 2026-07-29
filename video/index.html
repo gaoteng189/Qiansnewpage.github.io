@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>视频</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', '微软雅黑',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            background: #f4f7fc;
+            min-height: 100vh;
+            padding: 20px 16px;
+        }
+    </style>
+</head>
+    <body>
+        <div class="app">
+            <h1>视频</h1>
+            <div class="sub">视频播放测试</div>
+
+            <video width="100%" height="auto" autoplay loop controls>
+                <source src="video.mp4" type="video/mp4">
+                您的浏览器不支持 HTML5 视频标签。
+            </video>
+            <audio width="100%" height="auto" autoplay loop controls>
+                <source src="back.ogg" type="audio/mpeg">
+                您的浏览器不支持 HTML5 音频标签。
+            </audio>
+        </div>
+    </body>
+</html>
