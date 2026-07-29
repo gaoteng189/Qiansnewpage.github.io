@@ -9,16 +9,16 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Microsoft YaHei', '微软雅黑',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Microsoft YaHei', '微软雅黑', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        html,body {
+        html, body {
             height: 100%;
             position: relative;
         }
-        
+
         body::before {
             content: '';
-            position: fixed;   /* 固定定位，背景不随滚动 */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
@@ -27,35 +27,181 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            z-index: -1;       /* 放在所有内容后面 */
+            z-index: -1;
         }
         .content {
-            position: relative;  /* 确保在背景上方（因为 z-index 层级） */
-            z-index: 1;          /* 显式高于 -1 */
+            position: relative;
+            z-index: 1;
             padding: 20px;
             color: white;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-            min-height: 100vh;   /* 撑满视口高度，内容多时自动扩展 */
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+        .app {
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 28px 24px 32px;
+            max-width: 720px;
+            width: 100%;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+        .sub {
+            font-weight: bold;
+            color: #52f3ff;
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+            letter-spacing: 2px;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            background: #000;
+            display: block;
+            margin-bottom: 18px;
+        }
+
+        /* ----- 按钮组样式 ----- */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .btn {
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 30px;
+            color: #eee;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            backdrop-filter: blur(4px);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #52f3ff;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .btn.active {
+            background: #52f3ff;
+            color: #0b1e33;
+            border-color: #52f3ff;
+            box-shadow: 0 4px 16px rgba(82, 243, 255, 0.4);
+        }
+        .btn.active:hover {
+            background: #7af6ff;
+        }
+
+        .current-hint {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.75);
+            margin-top: 6px;
+        }
+        .current-hint strong {
+            color: #52f3ff;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             body::before {
                 background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/MefDndfh.jpeg');
             }
+            .app {
+                padding: 18px 14px 22px;
+            }
+            .sub {
+                font-size: 17px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 6px 14px;
+            }
         }
     </style>
 </head>
-    <body>
-        <div class="content">
-            <div class="app">
+<body>
+    <div class="content">
+        <div class="app">
+            <div class="sub">Blue Archive 1st PV</div>
 
-                <div class="sub" style="font-weight: bold; color:#52f3ff; margin: 0 auto;width: 100%;max-width: 1024px;">Blue Archive 1st PV</div>
+            <!-- 视频播放器 -->
+            <video id="player" controls autoplay loop playsinline>
+                <source src="video1.mp4" type="video/mp4">
+                Err: Your browser does not support the video tag.
+                错误： 您的浏览器不支持视频播放。
+            </video>
 
-                <video width="100%" height="auto" autoplay loop controls>
-                    <source src="video.mp4" type="video/mp4">
-                    Err: Your browser does not support the video tag.
-                    错误：您的浏览器不支持 HTML5 视频。
-                </video>
+            <div class="btn-group" id="btnGroup">
+                <button class="btn active" data-video="video1.mp4" data-name="BA 1ST PV">BA 1ST PV</button>
+                <button class="btn" data-video="video2.mp4" data-name="GGF">GGF</button>
+                <button class="btn" data-video="video3.mp4" data-name="Luminous Memory">Luminous Memory</button>
+            </div>
+
+            <div class="current-hint">
+                当前播放：<strong id="currentName"></strong>
             </div>
         </div>
-    </body>
+    </div>
+
+    <script>
+        (function() {
+            const video = document.getElementById('player');
+            const buttons = document.querySelectorAll('#btnGroup .btn');
+            const currentName = document.getElementById('currentName');
+
+            // 切换视频函数
+            function switchVideo(btn) {
+                // 更新按钮高亮
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // 获取视频地址和名称
+                const videoUrl = btn.dataset.video;
+                const name = btn.dataset.name || btn.textContent.trim();
+
+                // 更改视频源
+                video.src = videoUrl;
+                video.load();
+
+                // 尝试自动播放（若被阻止则忽略）
+                video.play().catch(() => {});
+
+                // 更新提示文字
+                currentName.textContent = name;
+            }
+
+            // 绑定点击事件
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchVideo(this);
+                });
+            });
+
+            // 初始化：确保第一个按钮高亮且名称正确
+            const activeBtn = document.querySelector('#btnGroup .btn.active');
+            if (activeBtn) {
+                currentName.textContent = activeBtn.dataset.name || activeBtn.textContent.trim();
+            } else {
+                // 若无高亮，默认第一个
+                const first = buttons[0];
+                if (first) {
+                    first.classList.add('active');
+                    currentName.textContent = first.dataset.name || first.textContent.trim();
+                }
+            }
+        })();
+    </script>
+</body>
 </html>
