@@ -258,7 +258,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <div class="content">
-        <img src="Logo.png" alt="Logo" class="top-left-logo" onclick="showToast('你跑不过巧乐兹你信不信（zxf老师~~ 我还记得你~~）', 'info', 2000)" />
+        <img src="Logo.png" alt="Logo" class="top-left-logo" onclick="switchToNZS()" />
         <div class="app">
             <div class="sub">Blue Archive (点击左上角图片有惊喜)</div>
 
@@ -272,6 +272,10 @@
                 <button class="btn active" data-video="BA1STPV.mp4" data-name="BA 1ST PV">BA 1ST PV</button>
                 <button class="btn" data-video="GGF.mp4" data-name="GGF">GGF</button>
                 <button class="btn" data-video="LuminousMemory.mp4" data-name="Luminous Memory">Luminous Memory</button>
+            </div>
+            
+            <div class="current-hint">
+                当前播放：<strong id="currentName">BA 1ST PV</strong>
             </div>
         </div>
         
@@ -367,7 +371,26 @@
                 if (el.parentNode) el.parentNode.removeChild(el);
             }, 300);
         }
+        }
+
+    function switchToNZS() {
+        const video = document.getElementById('player');
+        video.src = 'NZS.mp4';
+        video.load();
+        video.play().catch(() => {});
+
+        const nameDisplay = document.getElementById('currentName');
+        if (nameDisplay) {
+            nameDisplay.textContent = 'NZS';
+        }
+
+        document.querySelectorAll('#btnGroup .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        showToast('你跑不过巧乐兹你信不信（zxf老师~~ 我还记得你~~）', 'info', 2000);
     }
+
     </script>
 </body>
 </html>
