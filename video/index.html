@@ -46,6 +46,7 @@
         }
         .app {
             background: rgba(0, 0, 0, 0.45);
+            -webkit-backdrop-filter: blur(8px);
             backdrop-filter: blur(8px);
             border-radius: 28px;
             padding: 28px 24px 32px;
@@ -86,6 +87,7 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.25s;
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             font-weight: 500;
             letter-spacing: 0.5px;
@@ -172,6 +174,7 @@
         .toast {
             pointer-events: auto;
             background: rgba(0, 0, 0, 0.75);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(12px);
             color: #f1f5f9;
             padding: 14px 20px;
@@ -262,7 +265,7 @@
         <div class="app">
             <div class="sub">Blue Archive (点击左上角图片有惊喜)</div>
 
-            <video id="player" width="100%" height="auto" autoplay muted loop controls playsinline preload="metadata">
+            <video id="player" width="100%" height="auto" autoplay muted loop controls webkit-playsinline preload="metadata">
                 <source src="BA1STPV.mp4" type="video/mp4">
                 Error: Your browser cannot play the video.
                 错误： 您的浏览器不支持此视频播放。
@@ -281,7 +284,7 @@
         
     </div>
     <p>
-        2026 Qianchenawa. All rights reserved.    Open source on <a href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a><span style="color: #52f3ff;font-weight: bold;">点击左上角图片有惊喜</span>
+        2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
     </p>
     <script>
         (function() {
