@@ -5,8 +5,8 @@
  *   node server.js
  *
  * 启动后访问：
- *   http://localhost:3000             —— 站点首页
- *   http://localhost:3000/message/    —— 留言板页面
+ *   http://localhost:50304             —— 站点首页
+ *   http://localhost:50304/message/    —— 留言板页面
  *
  * 留言数据保存在服务器所在主机的 messages.json 文件中。
  */
@@ -16,7 +16,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 50304;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'messages.json');
