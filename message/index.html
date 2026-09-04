@@ -224,9 +224,10 @@
 
     <script>
     (function () {
-        // 若从 file:// 打开则指向本地后端；从 http://localhost 打开则用相对路径
-        var API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
-        var API = API_BASE + '/api/messages';
+        // 统一走同源 /api/messages：
+        // - 本地 node server.js：直接命中其 API
+        // - 线上 CF Pages：由 functions/api/messages.js 反向代理到内网穿透后端
+        var API = '/api/messages';
 
         var form = document.getElementById('form');
         var nameInput = document.getElementById('name');
