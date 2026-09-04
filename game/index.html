@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2D 跑酷</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <style>
+        :root {
+            --md-primary: #8D6E63;
+            --md-on-primary: #FFFFFF;
+            --md-primary-container: #EFDBD1;
+            --md-on-primary-container: #3E2723;
+            --md-secondary: #A1887F;
+            --md-secondary-container: #E5D5CF;
+            --md-on-secondary-container: #3E2723;
+            --md-surface: #FDF8F5;
+            --md-surface-container: #F6ECE7;
+            --md-surface-container-high: #F0E3DC;
+            --md-on-surface: #1F1B16;
+            --md-on-surface-variant: #52443C;
+            --md-outline: #85736A;
+            --md-error: #BA1A1A;
+            --md-on-error: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Microsoft YaHei', '微软雅黑', system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 840px;
+            background: var(--md-surface-container);
+            border-radius: 28px;
+            padding: 20px 20px 24px;
+        }
+
+        header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 4px 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .scoreboard {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pill {
+            background: var(--md-secondary-container);
+            color: var(--md-on-secondary-container);
+            border-radius: 999px;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pill .num {
+            font-variant-numeric: tabular-nums;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .stage {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--md-surface);
+            outline: 1px solid var(--md-outline);
+            outline-offset: -1px;
+        }
+
+        canvas#game {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            touch-action: none;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            background: rgba(253, 248, 245, 0.72);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            text-align: center;
+            padding: 24px;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h2 {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--md-on-surface);
+        }
+
+        .overlay .desc {
+            color: var(--md-on-surface-variant);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .overlay .final-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--md-on-primary-container);
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px 34px;
+            border-radius: 999px;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+
+        .btn:hover {
+            opacity: 0.92;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-tonal {
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+        }
+
+        .hint {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 13px;
+            padding-top: 14px;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 13px;
+            margin-top: 18px;
+        }
+
+        footer a {
+            color: var(--md-primary);
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <h1>2D 跑酷</h1>
+            <div class="scoreboard">
+                <div class="pill">分数 <span class="num" id="score">0</span></div>
+                <div class="pill">最佳 <span class="num" id="best">0</span></div>
+            </div>
+        </header>
+
+        <div class="stage">
+            <canvas id="game"></canvas>
+            <div class="overlay" id="overlay">
+                <h2 id="overlayTitle">2D 跑酷</h2>
+                <p class="desc" id="overlayDesc">空格 / 点击画面 / 触摸 跳跃<br>支持二段跳，避开障碍物跑得越远越好</p>
+                <div class="final-score hidden" id="finalScore"></div>
+                <button class="btn" id="startBtn">开始游戏</button>
+            </div>
+        </div>
+
+        <p class="hint">空格 / 点击 / 触摸 跳跃</p>
+    </div>
+
+    <footer>
+        2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
+    </footer>
+
+    <script>
+    (function () {
+        // ---------- 画布与坐标 ----------
+        var canvas = document.getElementById('game');
+        var ctx = canvas.getContext('2d');
+        var WORLD_W = 800, WORLD_H = 450;
+        var GROUND_Y = 370;
+        var GRAVITY = 1800;
+        var JUMP_V = -640;
+        var JUMPS_MAX = 2;
+
+        var W = 0, H = 0;
+
+        function resize() {
+            var rect = canvas.getBoundingClientRect();
+            var dpr = window.devicePixelRatio || 1;
+            W = rect.width;
+            H = rect.height;
+            canvas.width = Math.max(1, Math.round(W * dpr));
+            canvas.height = Math.max(1, Math.round(H * dpr));
+            ctx.setTransform(dpr * W / WORLD_W, 0, 0, dpr * H / WORLD_H, 0, 0);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ---------- 颜色 ----------
+        var COL = {
+            sky: '#FDF8F5',
+            hill: '#E5D5CF',
+            ground: '#EFDBD1',
+            groundLine: '#C9A99A',
+            player: '#8D6E63',
+            playerEye: '#FFFFFF',
+            obstacle: '#5D4037',
+            cloud: '#F0E3DC'
+        };
+
+        // ---------- 状态 ----------
+        var state = 'ready'; // ready | playing | over
+        var player = {
+            x: 120,
+            w: 34,
+            h: 46,
+            y: GROUND_Y,      // 底部 y
+            vy: 0,
+            jumpsLeft: JUMPS_MAX
+        };
+        var obstacles = [];
+        var clouds = [];
+        var hills = [];
+        var score = 0;
+        var best = 0;
+        var speed = 0;
+        var spawnTimer = 0;
+        var lastTime = 0;
+
+        try {
+            best = parseInt(localStorage.getItem('runner_best'), 10) || 0;
+        } catch (e) { best = 0; }
+        document.getElementById('best').textContent = best;
+
+        // 初始化背景元素
+        for (var i = 0; i < 6; i++) {
+            clouds.push({ x: Math.random() * WORLD_W, y: 40 + Math.random() * 120, r: 18 + Math.random() * 26 });
+        }
+        for (var j = 0; j < 3; j++) {
+            hills.push({ x: j * 280, w: 180 + Math.random() * 80, h: 70 + Math.random() * 90 });
+        }
+
+        // ---------- DOM ----------
+        var overlay = document.getElementById('overlay');
+        var overlayTitle = document.getElementById('overlayTitle');
+        var overlayDesc = document.getElementById('overlayDesc');
+        var finalScore = document.getElementById('finalScore');
+        var startBtn = document.getElementById('startBtn');
+        var scoreEl = document.getElementById('score');
+        var bestEl = document.getElementById('best');
+
+        function setOverlay(mode) {
+            if (mode === 'ready') {
+                overlay.classList.remove('hidden');
+                overlayTitle.textContent = '2D 跑酷';
+                overlayDesc.textContent = '空格 / 点击画面 / 触摸 跳跃\n支持二段跳，避开障碍物跑得越远越好';
+                finalScore.classList.add('hidden');
+                startBtn.textContent = '开始游戏';
+            } else if (mode === 'over') {
+                overlay.classList.remove('hidden');
+                overlayTitle.textContent = '游戏结束';
+                overlayDesc.textContent = '跑得不错，再来一次？';
+                finalScore.classList.remove('hidden');
+                finalScore.textContent = '本次得分：' + Math.floor(score) + '　最佳：' + best;
+                startBtn.textContent = '重新开始';
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function startGame() {
+            state = 'playing';
+            score = 0;
+            speed = 320;
+            spawnTimer = 0.6;
+            obstacles.length = 0;
+            player.y = GROUND_Y;
+            player.vy = 0;
+            player.jumpsLeft = JUMPS_MAX;
+            setOverlay('playing');
+        }
+
+        function gameOver() {
+            state = 'over';
+            var s = Math.floor(score);
+            if (s > best) {
+                best = s;
+                try { localStorage.setItem('runner_best', best); } catch (e) {}
+                bestEl.textContent = best;
+            }
+            setOverlay('over');
+        }
+
+        function jump() {
+            if (state !== 'playing') return;
+            if (player.jumpsLeft > 0) {
+                player.vy = JUMP_V;
+                player.jumpsLeft--;
+            }
+        }
+
+        startBtn.addEventListener('click', startGame);
+        canvas.addEventListener('pointerdown', function () {
+            if (state === 'playing') {
+                jump();
+            } else if (state === 'ready' || state === 'over') {
+                startGame();
+            }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                e.preventDefault();
+                if (state === 'playing') {
+                    jump();
+                } else if (state === 'ready' || state === 'over') {
+                    startGame();
+                }
+            }
+        });
+
+        // ---------- 生成障碍 ----------
+        function spawnObstacle() {
+            var w = 22 + Math.random() * 26;
+            var h = 32 + Math.random() * 44;
+            obstacles.push({ x: WORLD_W + 20, w: w, h: h, y: GROUND_Y });
+        }
+
+        // ---------- 更新 ----------
+        function update(dt) {
+            if (state !== 'playing') return;
+
+            score += speed * dt * 0.01;
+            speed = Math.min(700, 320 + score * 0.5);
+            scoreEl.textContent = Math.floor(score);
+
+            // 玩家
+            player.vy += GRAVITY * dt;
+            player.y += player.vy * dt;
+            if (player.y >= GROUND_Y) {
+                player.y = GROUND_Y;
+                player.vy = 0;
+                player.jumpsLeft = JUMPS_MAX;
+            }
+
+            // 障碍
+            spawnTimer -= dt;
+            var interval = Math.max(0.55, 1.35 - speed * 0.0012);
+            if (spawnTimer <= 0) {
+                spawnObstacle();
+                spawnTimer = interval * (0.7 + Math.random() * 0.6);
+            }
+            for (var i = obstacles.length - 1; i >= 0; i--) {
+                var o = obstacles[i];
+                o.x -= speed * dt;
+                if (o.x + o.w < -20) {
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+                // AABB 碰撞
+                var px0 = player.x, px1 = player.x + player.w;
+                var py0 = player.y - player.h, py1 = player.y;
+                var ox0 = o.x, ox1 = o.x + o.w;
+                var oy0 = o.y - o.h, oy1 = o.y;
+                if (px0 < ox1 && px1 > ox0 && py0 < oy1 && py1 > oy0) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // 云
+            for (var c = 0; c < clouds.length; c++) {
+                clouds[c].x -= 40 * dt;
+                if (clouds[c].x < -60) {
+                    clouds[c].x = WORLD_W + 40;
+                    clouds[c].y = 40 + Math.random() * 120;
+                }
+            }
+            // 山丘
+            for (var hh = 0; hh < hills.length; hh++) {
+                hills[hh].x -= 60 * dt;
+                if (hills[hh].x + hills[hh].w < 0) {
+                    hills[hh].x += hills.length * 280;
+                    hills[hh].w = 180 + Math.random() * 80;
+                    hills[hh].h = 70 + Math.random() * 90;
+                }
+            }
+        }
+
+        // ---------- 绘制 ----------
+        function roundRect(x, y, w, h, r) {
+            r = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+
+        function draw() {
+            // 天空
+            ctx.fillStyle = COL.sky;
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+            // 云
+            ctx.fillStyle = COL.cloud;
+            for (var c = 0; c < clouds.length; c++) {
+                var cl = clouds[c];
+                ctx.beginPath();
+                ctx.arc(cl.x, cl.y, cl.r, 0, Math.PI * 2);
+                ctx.arc(cl.x + cl.r * 0.9, cl.y + 6, cl.r * 0.7, 0, Math.PI * 2);
+                ctx.arc(cl.x - cl.r * 0.9, cl.y + 6, cl.r * 0.65, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 山丘
+            ctx.fillStyle = COL.hill;
+            for (var hh = 0; hh < hills.length; hh++) {
+                var hl = hills[hh];
+                roundRect(hl.x, GROUND_Y - hl.h, hl.w, hl.h, 24);
+                ctx.fill();
+            }
+
+            // 地面
+            ctx.fillStyle = COL.ground;
+            ctx.fillRect(0, GROUND_Y, WORLD_W, WORLD_H - GROUND_Y);
+            ctx.fillStyle = COL.groundLine;
+            ctx.fillRect(0, GROUND_Y, WORLD_W, 4);
+
+            // 障碍
+            for (var i = 0; i < obstacles.length; i++) {
+                var o = obstacles[i];
+                ctx.fillStyle = COL.obstacle;
+                roundRect(o.x, o.y - o.h, o.w, o.h, 8);
+                ctx.fill();
+            }
+
+            // 玩家
+            ctx.fillStyle = COL.player;
+            roundRect(player.x, player.y - player.h, player.w, player.h, 10);
+            ctx.fill();
+            // 眼睛
+            ctx.fillStyle = COL.playerEye;
+            ctx.beginPath();
+            ctx.arc(player.x + player.w - 11, player.y - player.h + 12, 3.5, 0, Math.PI * 2);
+            ctx.arc(player.x + player.w - 11, player.y - player.h + 22, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ---------- 主循环 ----------
+        function loop(now) {
+            var dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
+            lastTime = now;
+            update(dt);
+            draw();
+            requestAnimationFrame(loop);
+        }
+        setOverlay('ready');
+        requestAnimationFrame(function (now) {
+            lastTime = now;
+            requestAnimationFrame(loop);
+        });
+    })();
+    </script>
+</body>
+</html>
