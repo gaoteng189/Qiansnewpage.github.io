@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>留言板</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <style>
+        :root {
+            --md-primary: #8D6E63;
+            --md-on-primary: #FFFFFF;
+            --md-primary-container: #EFDBD1;
+            --md-on-primary-container: #3E2723;
+            --md-secondary: #A1887F;
+            --md-secondary-container: #E5D5CF;
+            --md-on-secondary-container: #3E2723;
+            --md-surface: #FDF8F5;
+            --md-surface-container: #F6ECE7;
+            --md-surface-container-high: #F0E3DC;
+            --md-on-surface: #1F1B16;
+            --md-on-surface-variant: #52443C;
+            --md-outline: #85736A;
+            --md-outline-variant: #D8CCC4;
+            --md-error: #BA1A1A;
+            --md-on-error: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Microsoft YaHei', '微软雅黑', system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .card {
+            background: var(--md-surface-container);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .field-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--md-on-surface-variant);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--md-outline);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 16px;
+            color: var(--md-on-surface);
+            outline: none;
+            transition: border-color 0.15s, border-width 0.15s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            border: 2px solid var(--md-primary);
+            padding: 11px 15px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 96px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 32px;
+            border-radius: 999px;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.92; }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .form-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status {
+            font-size: 13px;
+            color: var(--md-on-surface-variant);
+        }
+        .status.error { color: var(--md-error); }
+
+        /* 留言列表 */
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg {
+            background: var(--md-surface-container-high);
+            border-radius: 16px;
+            padding: 14px 18px;
+        }
+
+        .msg-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .msg-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--md-on-primary-container);
+        }
+
+        .msg-time {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            white-space: nowrap;
+        }
+
+        .msg-body {
+            font-size: 15px;
+            line-height: 1.6;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 14px;
+            padding: 28px 0;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        footer a {
+            color: var(--md-primary);
+            text-decoration: none;
+        }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="card">
+            <h1>留言板</h1>
+            <form id="form">
+                <div class="field-group">
+                    <label for="name">昵称（可选）</label>
+                    <input type="text" id="name" maxlength="50" placeholder="你的昵称">
+                </div>
+                <div class="field-group">
+                    <label for="message">留言内容</label>
+                    <textarea id="message" maxlength="1000" placeholder="写下你想说的话…"></textarea>
+                </div>
+                <div class="form-foot">
+                    <button class="btn" id="submitBtn" type="submit">发布留言</button>
+                    <span class="status" id="status"></span>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h1>全部留言</h1>
+            <div class="message-list" id="messageList">
+                <div class="empty">加载中…</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
+    </footer>
+
+    <script>
+    (function () {
+        // 若从 file:// 打开则指向本地后端；从 http://localhost 打开则用相对路径
+        var API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        var API = API_BASE + '/api/messages';
+
+        var form = document.getElementById('form');
+        var nameInput = document.getElementById('name');
+        var messageInput = document.getElementById('message');
+        var submitBtn = document.getElementById('submitBtn');
+        var statusEl = document.getElementById('status');
+        var listEl = document.getElementById('messageList');
+
+        function formatTime(iso) {
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            function pad(n) { return n < 10 ? '0' + n : n; }
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+                ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        }
+
+        function render(messages) {
+            if (!messages || messages.length === 0) {
+                listEl.innerHTML = '<div class="empty">还没有留言，来抢沙发吧～</div>';
+                return;
+            }
+            listEl.innerHTML = '';
+            messages.slice().reverse().forEach(function (m) {
+                var el = document.createElement('div');
+                el.className = 'msg';
+                var head = document.createElement('div');
+                head.className = 'msg-head';
+                var name = document.createElement('span');
+                name.className = 'msg-name';
+                name.textContent = m.name || '匿名';
+                var time = document.createElement('span');
+                time.className = 'msg-time';
+                time.textContent = formatTime(m.time);
+                head.appendChild(name);
+                head.appendChild(time);
+                var body = document.createElement('div');
+                body.className = 'msg-body';
+                body.textContent = m.message;
+                el.appendChild(head);
+                el.appendChild(body);
+                listEl.appendChild(el);
+            });
+        }
+
+        function setStatus(text, isError) {
+            statusEl.textContent = text;
+            statusEl.className = 'status' + (isError ? ' error' : '');
+        }
+
+        function loadMessages() {
+            fetch(API)
+                .then(function (r) { return r.json(); })
+                .then(render)
+                .catch(function () {
+                    listEl.innerHTML = '<div class="empty">无法连接服务器，请先运行 <code>node server.js</code></div>';
+                });
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var message = messageInput.value.trim();
+            if (!message) {
+                setStatus('留言内容不能为空', true);
+                return;
+            }
+            submitBtn.disabled = true;
+            setStatus('发布中…', false);
+            fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: nameInput.value.trim(),
+                    message: message
+                })
+            })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (res) {
+                    if (!res.ok) throw new Error(res.data.error || '发布失败');
+                    messageInput.value = '';
+                    nameInput.value = '';
+                    setStatus('发布成功', false);
+                    setTimeout(function () { setStatus('', false); }, 2000);
+                    loadMessages();
+                })
+                .catch(function (err) {
+                    setStatus(err.message || '发布失败，请确认服务器已启动', true);
+                })
+                .finally(function () {
+                    submitBtn.disabled = false;
+                });
+        });
+
+        loadMessages();
+    })();
+    </script>
+</body>
+</html>

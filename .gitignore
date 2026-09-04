@@ -1,0 +1,5 @@
+# 留言板运行时数据（由 server.js 动态生成）
+messages.json
+
+# Node.js
+node_modules/
