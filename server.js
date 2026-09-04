@@ -120,6 +120,14 @@ function serveStatic(res, urlPath) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
+  const startedAt = Date.now();
+
+  // 请求日志：记录方法、路径、状态码与耗时
+  res.on('finish', () => {
+    const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    const ms = Date.now() - startedAt;
+    console.log(`[${time}] ${req.method} ${pathname} -> ${res.statusCode} (${ms}ms)`);
+  });
 
   // 预检请求
   if (req.method === 'OPTIONS') {
@@ -173,6 +181,7 @@ const server = http.createServer(async (req, res) => {
         send(res, 500, { error: '写入留言失败：' + e.message });
         return;
       }
+      console.log(`[留言] ${item.name}: ${item.message.slice(0, 80)}`);
       send(res, 200, { ok: true, item });
       return;
     }
