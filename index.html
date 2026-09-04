@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NaN</title>
+    <title>在线工具箱</title>
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -267,12 +267,370 @@
 </head>
 <body>
     <div class="app">
-        <p><a href="video/index.html" target="_blank">视频播放测试</a></p>
-        <p>开发中，敬请期待</p>
-        <p>
-            2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow"  href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
-        </p>
+        <h1>在线工具箱</h1>
+        <div class="sub">纯前端小工具集 · 无需联网 · 数据不会离开你的浏览器</div>
+
+        <div class="card">
+            <h2>函数图像绘制</h2>
+            <div class="input-group">
+                <label for="fnInput">函数表达式 f(x)</label>
+                <input type="text" id="fnInput" value="sin(x)" placeholder="例如：sin(x)、x*x、sqrt(x)、1/x">
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="functionCanvas"></canvas>
+            </div>
+            <div class="sample-btns" id="sampleBtns">
+                <button data-fn="sin(x)">sin(x)</button>
+                <button data-fn="cos(x)">cos(x)</button>
+                <button data-fn="tan(x)">tan(x)</button>
+                <button data-fn="x*x">x²</button>
+                <button data-fn="x*x*x">x³</button>
+                <button data-fn="sqrt(x)">√x</button>
+                <button data-fn="abs(x)">|x|</button>
+                <button data-fn="1/x">1/x</button>
+                <button data-fn="log(x)">ln(x)</button>
+                <button data-fn="exp(x)">eˣ</button>
+            </div>
+            <div class="canvas-hint" id="fnHint">拖动平移 · 滚轮缩放 · 点击示例快速绘制</div>
+        </div>
+
+        <div class="card">
+            <h2>Base64 编解码</h2>
+            <div class="input-group">
+                <label for="b64Input">文本内容</label>
+                <input type="text" id="b64Input" placeholder="支持中文，输入要编码或解码的内容">
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="b64Encode">编码</button>
+                <button class="btn btn-secondary" id="b64Decode">解码</button>
+            </div>
+            <div class="result-box">
+                <span class="text" id="b64Result">结果将显示在这里</span>
+                <button class="copy-btn" data-target="b64Result">复制</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>SHA-256 哈希</h2>
+            <div class="input-group">
+                <label for="hashInput">文本内容</label>
+                <input type="text" id="hashInput" placeholder="输入要计算 SHA-256 的内容">
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="hashBtn">计算 SHA-256</button>
+            </div>
+            <div class="result-box">
+                <span class="text" id="hashResult">结果将显示在这里</span>
+                <button class="copy-btn" data-target="hashResult">复制</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>随机密码生成器</h2>
+            <div class="input-group">
+                <label for="pwdLength">密码长度（4 - 128）</label>
+                <input type="number" id="pwdLength" value="16" min="4" max="128">
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="pwdBtn">生成密码</button>
+            </div>
+            <div class="result-box">
+                <span class="text" id="pwdResult">点击按钮生成</span>
+                <button class="copy-btn" data-target="pwdResult">复制</button>
+            </div>
+            <div class="verify-result" id="pwdStrength"></div>
+        </div>
+
+        <p class="hint"><a href="video/index.html" target="_blank">视频播放测试</a></p>
+        <p>2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a></p>
     </div>
+
+    <script>
+    (function () {
+        // ---------- 通用复制按钮 ----------
+        document.querySelectorAll('.copy-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var target = document.getElementById(btn.dataset.target);
+                if (!target) return;
+                var text = target.textContent;
+                function done() {
+                    var old = btn.textContent;
+                    btn.textContent = '已复制';
+                    setTimeout(function () { btn.textContent = old; }, 1200);
+                }
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (e) {}
+                    ta.remove();
+                    done();
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done, fallback);
+                } else {
+                    fallback();
+                }
+            });
+        });
+
+        // ---------- 函数图像绘制 ----------
+        var canvas = document.getElementById('functionCanvas');
+        var ctx = canvas.getContext('2d');
+        var fnInput = document.getElementById('fnInput');
+        var fnHint = document.getElementById('fnHint');
+
+        var fn = null;
+        var scale = 80;       // 每单位长度对应的像素数
+        var ox = 0, oy = 0;   // 原点在画布(CSS 坐标)中的位置
+        var cssW = 0, cssH = 0;
+        var initialized = false;
+        var dragging = false;
+        var lastX = 0, lastY = 0;
+
+        function compileFn(expr) {
+            var s = expr.trim();
+            if (!/^[0-9a-zA-Z+\-*/^()., ]+$/.test(s)) return null;
+            s = s.replace(/\^/g, '**');
+            s = s.replace(/\b(sin|cos|tan|asin|acos|atan|sqrt|abs|log|exp|floor|ceil|round)\b/g, 'Math.$1');
+            s = s.replace(/\bpi\b/g, 'Math.PI');
+            try {
+                var f = new Function('x', '"use strict"; return (' + s + ');');
+                var v = f(1);
+                if (typeof v !== 'number') return null;
+                return f;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function updateFn() {
+            fn = compileFn(fnInput.value);
+            if (fn) {
+                fnHint.textContent = '拖动平移 · 滚轮缩放 · 点击示例快速绘制';
+                fnHint.style.color = '';
+            } else {
+                fnHint.textContent = '表达式无效，请检查后重试';
+                fnHint.style.color = '#dc2626';
+            }
+            draw();
+        }
+
+        function niceStep() {
+            var raw = 60 / scale;
+            var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+            var n = raw / pow;
+            var m = n < 1.5 ? 1 : (n < 3.5 ? 2 : (n < 7.5 ? 5 : 10));
+            return m * pow;
+        }
+
+        function draw() {
+            var dpr = window.devicePixelRatio || 1;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, cssW, cssH);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cssW, cssH);
+
+            var step = niceStep();
+
+            // 网格
+            ctx.strokeStyle = '#eef2f6';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            var kxStart = Math.floor((0 - ox) / scale / step);
+            var kxEnd = Math.ceil((cssW - ox) / scale / step);
+            for (var kx = kxStart; kx <= kxEnd; kx++) {
+                var sx = ox + kx * step * scale;
+                ctx.moveTo(sx, 0);
+                ctx.lineTo(sx, cssH);
+            }
+            var kyStart = Math.floor((oy - cssH) / scale / step);
+            var kyEnd = Math.ceil(oy / scale / step);
+            for (var ky = kyStart; ky <= kyEnd; ky++) {
+                var sy = oy - ky * step * scale;
+                ctx.moveTo(0, sy);
+                ctx.lineTo(cssW, sy);
+            }
+            ctx.stroke();
+
+            // 坐标轴
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, oy);
+            ctx.lineTo(cssW, oy);
+            ctx.moveTo(ox, 0);
+            ctx.lineTo(ox, cssH);
+            ctx.stroke();
+
+            // 函数曲线
+            if (fn) {
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                var started = false;
+                for (var px = 0; px <= cssW; px++) {
+                    var wx = (px - ox) / scale;
+                    var y;
+                    try { y = fn(wx); } catch (e) { started = false; continue; }
+                    if (typeof y !== 'number' || !isFinite(y)) { started = false; continue; }
+                    var py = oy - y * scale;
+                    if (py < -cssH * 2 || py > cssH * 3) { started = false; continue; }
+                    if (!started) { ctx.moveTo(px, py); started = true; }
+                    else { ctx.lineTo(px, py); }
+                }
+                ctx.stroke();
+            }
+        }
+
+        function initCanvas() {
+            var rect = canvas.getBoundingClientRect();
+            var dpr = window.devicePixelRatio || 1;
+            cssW = rect.width;
+            cssH = rect.height;
+            canvas.width = Math.max(1, Math.round(cssW * dpr));
+            canvas.height = Math.max(1, Math.round(cssH * dpr));
+            if (!initialized) {
+                ox = cssW / 2;
+                oy = cssH / 2;
+                initialized = true;
+            }
+            draw();
+        }
+
+        canvas.addEventListener('pointerdown', function (e) {
+            dragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            canvas.setPointerCapture(e.pointerId);
+        });
+        canvas.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            ox += e.clientX - lastX;
+            oy += e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            draw();
+        });
+        canvas.addEventListener('pointerup', function () { dragging = false; });
+        canvas.addEventListener('pointercancel', function () { dragging = false; });
+        canvas.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            var rect = canvas.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            var factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+            var newScale = Math.min(2000, Math.max(5, scale * factor));
+            var ratio = newScale / scale;
+            ox = mx - (mx - ox) * ratio;
+            oy = my - (my - oy) * ratio;
+            scale = newScale;
+            draw();
+        }, { passive: false });
+
+        fnInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') updateFn();
+        });
+        fnInput.addEventListener('change', updateFn);
+        document.getElementById('sampleBtns').addEventListener('click', function (e) {
+            var btn = e.target.closest('button[data-fn]');
+            if (!btn) return;
+            fnInput.value = btn.dataset.fn;
+            updateFn();
+        });
+        window.addEventListener('resize', initCanvas);
+
+        // ---------- Base64 编解码 ----------
+        function utf8ToBase64(str) {
+            var bytes = new TextEncoder().encode(str);
+            var bin = '';
+            for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+        function base64ToUtf8(str) {
+            var bin = atob(str);
+            var bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new TextDecoder().decode(bytes);
+        }
+        document.getElementById('b64Encode').addEventListener('click', function () {
+            try {
+                document.getElementById('b64Result').textContent = utf8ToBase64(document.getElementById('b64Input').value);
+            } catch (e) {
+                document.getElementById('b64Result').textContent = '编码失败';
+            }
+        });
+        document.getElementById('b64Decode').addEventListener('click', function () {
+            try {
+                document.getElementById('b64Result').textContent = base64ToUtf8(document.getElementById('b64Input').value.trim());
+            } catch (e) {
+                document.getElementById('b64Result').textContent = '解码失败：不是有效的 Base64';
+            }
+        });
+
+        // ---------- SHA-256 ----------
+        document.getElementById('hashBtn').addEventListener('click', function () {
+            var out = document.getElementById('hashResult');
+            out.textContent = '计算中…';
+            if (window.crypto && crypto.subtle) {
+                crypto.subtle.digest('SHA-256', new TextEncoder().encode(document.getElementById('hashInput').value))
+                    .then(function (buf) {
+                        var arr = Array.from(new Uint8Array(buf));
+                        out.textContent = arr.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+                    })
+                    .catch(function () { out.textContent = '计算失败'; });
+            } else {
+                out.textContent = '当前浏览器不支持 Web Crypto API';
+            }
+        });
+
+        // ---------- 随机密码生成器 ----------
+        function genPassword(len) {
+            var upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            var lower = 'abcdefghijklmnopqrstuvwxyz';
+            var digits = '0123456789';
+            var symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            var all = upper + lower + digits + symbols;
+            var arr = new Uint32Array(len);
+            crypto.getRandomValues(arr);
+            var pwd = '';
+            for (var i = 0; i < len; i++) pwd += all[arr[i] % all.length];
+            return pwd;
+        }
+        function pwdStrength(pwd) {
+            var score = 0;
+            if (/[a-z]/.test(pwd)) score++;
+            if (/[A-Z]/.test(pwd)) score++;
+            if (/\d/.test(pwd)) score++;
+            if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+            if (pwd.length >= 12) score++;
+            if (pwd.length >= 20) score++;
+            if (score <= 2) return { text: '强度：弱', cls: 'fail' };
+            if (score <= 4) return { text: '强度：中等', cls: '' };
+            return { text: '强度：强', cls: 'success' };
+        }
+        document.getElementById('pwdBtn').addEventListener('click', function () {
+            var lenInput = document.getElementById('pwdLength');
+            var len = parseInt(lenInput.value, 10);
+            if (isNaN(len)) len = 16;
+            len = Math.min(128, Math.max(4, len));
+            lenInput.value = len;
+            var pwd = genPassword(len);
+            document.getElementById('pwdResult').textContent = pwd;
+            var s = pwdStrength(pwd);
+            var el = document.getElementById('pwdStrength');
+            el.textContent = s.text;
+            el.className = 'verify-result ' + s.cls;
+        });
+
+        // 初始化
+        initCanvas();
+        updateFn();
+    })();
+    </script>
     
 </body>
 </html>
