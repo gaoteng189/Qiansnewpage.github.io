@@ -224,10 +224,8 @@
 
     <script>
     (function () {
-        // 统一走同源 /api/messages：
-        // - 本地 node server.js：直接命中其 API
-        // - 线上 CF Pages：由 functions/api/messages.js 反向代理到内网穿透后端
-        var API = '/api/messages';
+        // 直接连接本地后端服务（node server.js，默认 50304 端口）
+        var API = 'http://localhost:50304/api/messages';
 
         var form = document.getElementById('form');
         var nameInput = document.getElementById('name');
