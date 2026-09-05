@@ -1,45 +1,142 @@
 // ============================================================
-//  留言板服务控制台 (C++ TUI)
-//  启动/停止后端 + Cloudflare 隧道、设置端口、自动更新留言页地址
-//  编译：g++ -std=c++17 -O2 -static main.cpp -o start-server.exe -lshell32
+//  Message Board Console (Qt6 GUI)
+//  M3 棕色扁平化设计语言，启动/停止后端 + Cloudflare 隧道
 // ============================================================
-#define WIN32_LEAN_AND_MEAN
+#include <QApplication>
+#include <QWidget>
+#include <QLabel>
+#include <QPushButton>
+#include <QLineEdit>
+#include <QFrame>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QTimer>
+#include <QProcess>
+#include <QFile>
+#include <QRegularExpression>
+#include <QDir>
+
 #include <windows.h>
 #include <shellapi.h>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <regex>
-#include <chrono>
-#include <thread>
 
-static PROCESS_INFORMATION g_node = {};
-static PROCESS_INFORMATION g_tunnel = {};
-static std::string g_root;
-static std::string g_tunnelUrl;
+// ---------- M3 棕色 QSS ----------
+static const char* M3_QSS = R"(
+QWidget {
+    background-color: #FDF8F5;
+    color: #1F1B16;
+    font-family: "Segoe UI", "Microsoft YaHei", "微软雅黑";
+    font-size: 13px;
+}
+#titleLabel {
+    font-size: 19px;
+    font-weight: bold;
+    color: #1F1B16;
+    background: transparent;
+}
+#subtitleLabel {
+    color: #52443C;
+    background: transparent;
+}
+#cardFrame {
+    background-color: #F6ECE7;
+    border-radius: 20px;
+}
+QLabel {
+    background: transparent;
+}
+#statusValue {
+    color: #1F1B16;
+    font-weight: bold;
+}
+#urlValue {
+    color: #8D6E63;
+    font-weight: bold;
+}
+QPushButton {
+    background-color: #8D6E63;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 28px;
+    font-weight: bold;
+    font-size: 14px;
+}
+QPushButton:hover {
+    background-color: #7A5C52;
+}
+QPushButton:pressed {
+    background-color: #6D5148;
+}
+QPushButton:disabled {
+    background-color: #C9B7AE;
+}
+#stopBtn, #setPortBtn {
+    background-color: #EFDBD1;
+    color: #3E2723;
+}
+#stopBtn:hover, #setPortBtn:hover {
+    background-color: #E3C8BA;
+}
+QLineEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #85736A;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+QLineEdit:focus {
+    border: 2px solid #8D6E63;
+}
+)";
+
+static QString g_root;
 static int g_port = 50304;
+static QString g_tunnelUrl;
+static QProcess* g_node = nullptr;
+static QProcess* g_tunnel = nullptr;
 
-// ---------- 编码转换 ----------
-static std::string WideToUtf8(const std::wstring& w) {
-    if (w.empty()) return "";
-    int n = WideCharToMultiByte(CP_UTF8, 0, w.c_str(), (int)w.size(), nullptr, 0, nullptr, nullptr);
-    std::string s((size_t)n, 0);
-    WideCharToMultiByte(CP_UTF8, 0, w.c_str(), (int)w.size(), &s[0], n, nullptr, nullptr);
-    return s;
+// ---------- 文件读写（UTF-8） ----------
+static QString readFile(const QString& path) {
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) return QString();
+    return QString::fromUtf8(f.readAll());
 }
 
-static std::wstring Utf8ToWide(const std::string& s) {
-    if (s.empty()) return L"";
-    int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), nullptr, 0);
-    std::wstring w((size_t)n, 0);
-    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), &w[0], n);
-    return w;
+static void writeFile(const QString& path, const QString& content) {
+    QFile f(path);
+    if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        f.write(content.toUtf8());
+        f.close();
+    }
 }
 
-// ---------- 权限 ----------
-static bool IsElevated() {
+// ---------- 端口持久化 ----------
+static void loadPort() {
+    QString saved = readFile(g_root + "/.server-port").trimmed();
+    bool ok = false;
+    int p = saved.toInt(&ok);
+    if (ok && p >= 1 && p <= 65535) g_port = p;
+}
+
+static void savePort(int p) {
+    writeFile(g_root + "/.server-port", QString::number(p));
+}
+
+// ---------- WS_URL ----------
+static void setWsUrl(const QString& url) {
+    QString path = g_root + "/message/index.html";
+    QString content = readFile(path);
+    QRegularExpression re("var WS_URL = 'wss://[^']+';");
+    content.replace(re, "var WS_URL = '" + url + "';");
+    writeFile(path, content);
+}
+
+static void resetWsUrl() {
+    setWsUrl("wss://YOUR-TUNNEL.trycloudflare.com");
+}
+
+// ---------- 提权 ----------
+static bool isElevated() {
     BOOL elevated = FALSE;
     HANDLE token = nullptr;
     if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
@@ -52,240 +149,217 @@ static bool IsElevated() {
     return elevated != FALSE;
 }
 
-static std::string GetRoot() {
-    wchar_t buf[MAX_PATH] = {0};
-    GetModuleFileNameW(nullptr, buf, MAX_PATH);
-    std::wstring path = buf;
-    size_t pos = path.find_last_of(L"\\/");
-    if (pos != std::wstring::npos) path = path.substr(0, pos);
-    return WideToUtf8(path);
-}
+// ---------- 主窗口 ----------
+class MainWindow : public QWidget {
+public:
+    MainWindow() {
+        setWindowTitle("Message Board Console");
+        setFixedSize(520, 480);
 
-// ---------- 文件 ----------
-static std::string ReadFile(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) return "";
-    std::ostringstream ss;
-    ss << f.rdbuf();
-    return ss.str();
-}
+        auto* title = new QLabel("Message Board Console", this);
+        title->setObjectName("titleLabel");
+        auto* subtitle = new QLabel("Message board backend + Cloudflare Tunnel", this);
+        subtitle->setObjectName("subtitleLabel");
 
-static void WriteFile(const std::string& path, const std::string& content) {
-    std::ofstream f(path, std::ios::binary);
-    if (f) f.write(content.data(), (std::streamsize)content.size());
-}
+        // 状态卡片
+        auto* card = new QFrame(this);
+        card->setObjectName("cardFrame");
+        auto* cardLayout = new QVBoxLayout(card);
+        cardLayout->setContentsMargins(20, 18, 20, 18);
+        cardLayout->setSpacing(10);
 
-// ---------- 进程 ----------
-static bool IsRunning(PROCESS_INFORMATION& pi) {
-    if (pi.hProcess == nullptr) return false;
-    DWORD code = 0;
-    if (GetExitCodeProcess(pi.hProcess, &code) && code == STILL_ACTIVE) return true;
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    pi.hProcess = nullptr;
-    pi.hThread = nullptr;
-    return false;
-}
+        portValue = new QLabel(this);
+        portValue->setObjectName("statusValue");
+        backendValue = new QLabel("Stopped", this);
+        backendValue->setObjectName("statusValue");
+        tunnelValue = new QLabel("Stopped", this);
+        tunnelValue->setObjectName("statusValue");
+        urlValue = new QLabel("—", this);
+        urlValue->setObjectName("urlValue");
+        urlValue->setWordWrap(true);
 
-static bool LaunchProcess(const std::string& cmdline, PROCESS_INFORMATION& pi, const std::string& logFile = "") {
-    STARTUPINFOW si{};
-    si.cb = sizeof(si);
-    SECURITY_ATTRIBUTES sa{};
-    sa.nLength = sizeof(sa);
-    sa.bInheritHandle = TRUE;
+        auto addRow = [&](const QString& label, QLabel* value) {
+            auto* row = new QHBoxLayout();
+            auto* l = new QLabel(label, this);
+            l->setFixedWidth(110);
+            l->setStyleSheet("color:#52443C; background:transparent;");
+            row->addWidget(l);
+            row->addWidget(value, 1);
+            cardLayout->addLayout(row);
+        };
+        addRow("Port", portValue);
+        addRow("Backend (node)", backendValue);
+        addRow("Tunnel", tunnelValue);
+        addRow("Tunnel URL", urlValue);
 
-    HANDLE outHandle = nullptr;
-    if (!logFile.empty()) {
-        HANDLE f = CreateFileW(Utf8ToWide(logFile).c_str(), GENERIC_WRITE,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE, &sa,
-                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (f == INVALID_HANDLE_VALUE) return false;
-        outHandle = f;
-        si.dwFlags = STARTF_USESTDHANDLES;
-        si.hStdOutput = f;
-        si.hStdError = f;
-        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        // 按钮行
+        startBtn = new QPushButton("Start", this);
+        stopBtn = new QPushButton("Stop", this);
+        stopBtn->setObjectName("stopBtn");
+        auto* btnRow = new QHBoxLayout();
+        btnRow->addStretch();
+        btnRow->addWidget(startBtn);
+        btnRow->addWidget(stopBtn);
+        btnRow->addStretch();
+
+        // 端口行
+        auto* portRow = new QHBoxLayout();
+        auto* portLabel = new QLabel("Port:", this);
+        portLabel->setStyleSheet("color:#52443C; background:transparent;");
+        portEdit = new QLineEdit(this);
+        portEdit->setText(QString::number(g_port));
+        portEdit->setFixedWidth(100);
+        portEdit->setAlignment(Qt::AlignCenter);
+        setPortBtn = new QPushButton("Apply", this);
+        setPortBtn->setObjectName("setPortBtn");
+        portRow->addStretch();
+        portRow->addWidget(portLabel);
+        portRow->addWidget(portEdit);
+        portRow->addWidget(setPortBtn);
+        portRow->addStretch();
+
+        // 提示
+        hint = new QLabel("", this);
+        hint->setStyleSheet("color:#52443C; background:transparent;");
+        hint->setAlignment(Qt::AlignCenter);
+
+        // 主布局
+        auto* layout = new QVBoxLayout(this);
+        layout->setContentsMargins(28, 24, 28, 20);
+        layout->setSpacing(14);
+        layout->addWidget(title);
+        layout->addWidget(subtitle);
+        layout->addSpacing(4);
+        layout->addWidget(card);
+        layout->addSpacing(4);
+        layout->addLayout(btnRow);
+        layout->addLayout(portRow);
+        layout->addWidget(hint);
+        layout->addStretch();
+
+        connect(startBtn, &QPushButton::clicked, this, &MainWindow::onStart);
+        connect(stopBtn, &QPushButton::clicked, this, &MainWindow::onStop);
+        connect(setPortBtn, &QPushButton::clicked, this, &MainWindow::onSetPort);
+
+        auto* timer = new QTimer(this);
+        connect(timer, &QTimer::timeout, this, &MainWindow::refreshStatus);
+        timer->start(1000);
+
+        refreshStatus();
     }
 
-    std::wstring cmd = Utf8ToWide(cmdline);
-    std::vector<wchar_t> buf(cmd.begin(), cmd.end());
-    buf.push_back(L'\0');
-
-    std::wstring workDir = Utf8ToWide(g_root);
-    BOOL ok = CreateProcessW(nullptr, buf.data(), nullptr, nullptr, TRUE,
-                             CREATE_NO_WINDOW, nullptr, workDir.c_str(), &si, &pi);
-    if (outHandle) CloseHandle(outHandle);
-    return ok != FALSE;
-}
-
-// ---------- WS_URL ----------
-static void SetWsUrl(const std::string& url) {
-    std::string path = g_root + "\\message\\index.html";
-    std::string content = ReadFile(path);
-    std::regex re("var WS_URL = 'wss://[^']+';");
-    std::string replacement = "var WS_URL = '" + url + "';";
-    content = std::regex_replace(content, re, replacement);
-    WriteFile(path, content);
-}
-
-static void ResetWsUrl() {
-    SetWsUrl("wss://YOUR-TUNNEL.trycloudflare.com");
-}
-
-// ---------- 端口 ----------
-static void LoadPort() {
-    std::string path = g_root + "\\.server-port";
-    std::string content = ReadFile(path);
-    if (!content.empty()) {
-        try { g_port = std::stoi(content); } catch (...) {}
-    }
-    if (g_port < 1 || g_port > 65535) g_port = 50304;
-}
-
-static void SavePort(int p) {
-    WriteFile(g_root + "\\.server-port", std::to_string(p));
-}
-
-// ---------- 服务 ----------
-static void StopServices() {
-    if (IsRunning(g_tunnel)) {
-        TerminateProcess(g_tunnel.hProcess, 0);
-        CloseHandle(g_tunnel.hProcess);
-        CloseHandle(g_tunnel.hThread);
-        g_tunnel = {};
-    }
-    if (IsRunning(g_node)) {
-        TerminateProcess(g_node.hProcess, 0);
-        CloseHandle(g_node.hProcess);
-        CloseHandle(g_node.hThread);
-        g_node = {};
-    }
-    g_tunnelUrl.clear();
-    ResetWsUrl();
-    std::cout << "  Services stopped. Message page URL reset to placeholder." << std::endl;
-}
-
-static void StartServices() {
-    if (IsRunning(g_node)) {
-        std::cout << "  Services are already running." << std::endl;
-        return;
-    }
-
-    std::cout << "  Starting backend server.js (port " << g_port << ")..." << std::endl;
-    if (!LaunchProcess("node server.js " + std::to_string(g_port), g_node, g_root + "\\.node.log")) {
-        std::cout << "  Failed to start node." << std::endl;
-        return;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(800));
-
-    std::cout << "  Starting Cloudflare Tunnel..." << std::endl;
-    std::string logFile = g_root + "\\.cloudflared.log";
-    if (!LaunchProcess("cloudflared tunnel --url http://localhost:" + std::to_string(g_port),
-                       g_tunnel, logFile)) {
-        std::cout << "  Failed to start cloudflared." << std::endl;
-        StopServices();
-        return;
-    }
-
-    std::cout << "  Waiting for tunnel URL..." << std::endl;
-    std::regex re("https://([a-z0-9-]+\\.trycloudflare\\.com)");
-    std::string url;
-    auto start = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(90)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        std::string log = ReadFile(logFile);
-        std::smatch m;
-        if (std::regex_search(log, m, re)) {
-            url = m[1].str();
-            break;
+private slots:
+    void onStart() {
+        if (isRunning(g_node)) {
+            hint->setText("Services are already running.");
+            return;
         }
-        if (!IsRunning(g_tunnel)) break;
+        hint->setText("Starting backend...");
+
+        g_node = new QProcess(this);
+        g_node->setWorkingDirectory(g_root);
+        g_node->start("node", { "server.js", QString::number(g_port) });
+
+        QTimer::singleShot(800, this, [this]() { startTunnel(); });
     }
 
-    if (url.empty()) {
-        std::cout << "  Failed to obtain tunnel URL. Check cloudflared." << std::endl;
-        StopServices();
-        return;
+    void startTunnel() {
+        g_tunnel = new QProcess(this);
+        g_tunnel->setWorkingDirectory(g_root);
+        g_tunnel->setProcessChannelMode(QProcess::MergedChannels);
+        connect(g_tunnel, &QProcess::readyReadStandardOutput, this, [this]() {
+            static QString buffer;
+            buffer += QString::fromUtf8(g_tunnel->readAllStandardOutput());
+            QRegularExpression re("https://([a-z0-9-]+\\.trycloudflare\\.com)");
+            auto m = re.match(buffer);
+            if (m.hasMatch()) {
+                QString host = m.captured(1);
+                g_tunnelUrl = "https://" + host;
+                setWsUrl("wss://" + host);
+                hint->setText("Tunnel ready.");
+                refreshStatus();
+                buffer.clear();
+            }
+        });
+        g_tunnel->start("cloudflared", { "tunnel", "--url", "http://localhost:" + QString::number(g_port) });
+        hint->setText("Waiting for tunnel URL...");
     }
 
-    g_tunnelUrl = "https://" + url;
-    SetWsUrl("wss://" + url);
-    std::cout << std::endl;
-    std::cout << "  Tunnel URL : " << g_tunnelUrl << std::endl;
-    std::cout << "  Message page updated to: wss://" << url << std::endl;
-}
-
-static void SetPortInteractive() {
-    if (IsRunning(g_node)) {
-        std::cout << "  Please stop services before changing the port." << std::endl;
-        return;
+    void onStop() {
+        stopServices();
+        hint->setText("Services stopped. URL reset to placeholder.");
+        refreshStatus();
     }
-    std::cout << "  Current port is " << g_port << ". Enter new port (1-65535): ";
-    std::string line;
-    std::getline(std::cin, line);
-    int newPort = 0;
-    try { newPort = std::stoi(line); } catch (...) { newPort = 0; }
-    if (newPort >= 1 && newPort <= 65535) {
-        g_port = newPort;
-        SavePort(g_port);
-        std::cout << "  Port set to " << g_port << std::endl;
-    } else {
-        std::cout << "  Invalid port." << std::endl;
+
+    void onSetPort() {
+        bool ok = false;
+        int p = portEdit->text().toInt(&ok);
+        if (ok && p >= 1 && p <= 65535) {
+            g_port = p;
+            savePort(p);
+            portEdit->setText(QString::number(p));
+            hint->setText("Port set to " + QString::number(p));
+        } else {
+            hint->setText("Invalid port (1-65535).");
+        }
+        refreshStatus();
     }
-}
 
-// ---------- 菜单 ----------
-static void ShowMenu() {
-    system("cls");
-    const char* nodeState = IsRunning(g_node) ? "Running" : "Stopped";
-    const char* tunnelState = IsRunning(g_tunnel) ? "Running" : "Stopped";
-
-    std::cout << "========================================" << std::endl;
-    std::cout << "       Message Board Console" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << std::endl;
-    std::cout << "  Port           : " << g_port << std::endl;
-    std::cout << "  Backend (node) : " << nodeState << std::endl;
-    std::cout << "  Tunnel         : " << tunnelState << std::endl;
-    if (!g_tunnelUrl.empty()) {
-        std::cout << "  Tunnel URL     : " << g_tunnelUrl << std::endl;
+    void refreshStatus() {
+        portValue->setText(QString::number(g_port));
+        backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
+        tunnelValue->setText(isRunning(g_tunnel) ? "Running" : "Stopped");
+        urlValue->setText(g_tunnelUrl.isEmpty() ? "—" : g_tunnelUrl);
     }
-    std::cout << std::endl;
-    std::cout << "  [1] Start services" << std::endl;
-    std::cout << "  [2] Stop services" << std::endl;
-    std::cout << "  [3] Set port" << std::endl;
-    std::cout << "  [4] Exit" << std::endl;
-    std::cout << std::endl;
-}
 
-int main() {
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-    g_root = GetRoot();
-    LoadPort();
+private:
+    bool isRunning(QProcess* p) {
+        return p && p->state() != QProcess::NotRunning;
+    }
 
-    if (!IsElevated()) {
+    void stopServices() {
+        if (isRunning(g_tunnel)) {
+            g_tunnel->kill();
+            g_tunnel->waitForFinished(2000);
+            g_tunnel->deleteLater();
+            g_tunnel = nullptr;
+        }
+        if (isRunning(g_node)) {
+            g_node->kill();
+            g_node->waitForFinished(2000);
+            g_node->deleteLater();
+            g_node = nullptr;
+        }
+        g_tunnelUrl.clear();
+        resetWsUrl();
+    }
+
+    QLabel* portValue;
+    QLabel* backendValue;
+    QLabel* tunnelValue;
+    QLabel* urlValue;
+    QLabel* hint;
+    QPushButton* startBtn;
+    QPushButton* stopBtn;
+    QPushButton* setPortBtn;
+    QLineEdit* portEdit;
+};
+
+int main(int argc, char* argv[]) {
+    QApplication app(argc, argv);
+    app.setStyleSheet(M3_QSS);
+    g_root = QCoreApplication::applicationDirPath();
+    loadPort();
+
+    if (!isElevated()) {
         wchar_t buf[MAX_PATH] = {0};
         GetModuleFileNameW(nullptr, buf, MAX_PATH);
         ShellExecuteW(nullptr, L"runas", buf, nullptr, nullptr, SW_SHOWNORMAL);
         return 0;
     }
 
-    bool running = true;
-    while (running) {
-        ShowMenu();
-        std::cout << "  Select (1-4): ";
-        std::string line;
-        std::getline(std::cin, line);
-        if (line == "1") StartServices();
-        else if (line == "2") StopServices();
-        else if (line == "3") SetPortInteractive();
-        else if (line == "4") running = false;
-        else std::cout << "  Invalid choice." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    }
-
-    StopServices();
-    std::cout << "  Bye." << std::endl;
-    return 0;
+    MainWindow w;
+    w.show();
+    return app.exec();
 }
+

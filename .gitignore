@@ -12,3 +12,19 @@ node_modules/
 
 # 端口配置
 .server-port
+
+# Qt 部署产物（windeployqt 生成）
+Qt6*.dll
+platforms/
+imageformats/
+styles/
+tls/
+generic/
+networkinformation/
+
+# 编译中间产物
+start-server-res.o
+.qmake.stash
+Makefile
+Makefile.Release
+Makefile.Debug
