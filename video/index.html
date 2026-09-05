@@ -10,17 +10,20 @@
     <link rel="manifest" href="/site.webmanifest">
     <style>
         :root {
-            --md-primary: #4DA6FF;
-            --md-on-primary: #06213B;
-            --md-primary-container: #0A3A66;
-            --md-on-primary-container: #CBE6FF;
-            --md-surface: #0E1320;
-            --md-surface-container: #151B2B;
-            --md-surface-container-high: #1D2436;
-            --md-on-surface: #E6ECF5;
-            --md-on-surface-variant: #9AA6BD;
-            --md-outline: #3A465C;
-            --md-outline-variant: #242E42;
+            --md-primary: #8D6E63;
+            --md-on-primary: #FFFFFF;
+            --md-primary-container: #EFDBD1;
+            --md-on-primary-container: #3E2723;
+            --md-secondary: #A1887F;
+            --md-secondary-container: #E5D5CF;
+            --md-on-secondary-container: #3E2723;
+            --md-surface: #FDF8F5;
+            --md-surface-container: #F6ECE7;
+            --md-surface-container-high: #F0E3DC;
+            --md-on-surface: #1F1B16;
+            --md-on-surface-variant: #52443C;
+            --md-outline: #85736A;
+            --md-outline-variant: #D8CCC4;
         }
 
         * {
@@ -38,7 +41,7 @@
             flex-direction: column;
         }
 
-        /* 顶部蓝色光晕，呼应 Blue Archive 光环 */
+        /* 顶部柔和光晕 */
         body::before {
             content: '';
             position: fixed;
@@ -47,7 +50,7 @@
             transform: translateX(-50%);
             width: 90vw;
             height: 70vh;
-            background: radial-gradient(ellipse at center, rgba(77, 166, 255, 0.22), transparent 70%);
+            background: radial-gradient(ellipse at center, rgba(141, 110, 99, 0.16), transparent 70%);
             z-index: 0;
             pointer-events: none;
         }
