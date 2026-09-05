@@ -11,14 +11,16 @@
     <style>
         :root {
             --md-primary: #4DA6FF;
-            --md-on-primary: #07203A;
-            --md-surface: #141210;
-            --md-surface-container: #1B1917;
-            --md-surface-container-high: #23211F;
-            --md-on-surface: #FFFFFF;
-            --md-on-surface-variant: rgba(255, 255, 255, 0.72);
-            --md-outline: rgba(255, 255, 255, 0.4);
-            --md-outline-variant: rgba(255, 255, 255, 0.16);
+            --md-on-primary: #06213B;
+            --md-primary-container: #0A3A66;
+            --md-on-primary-container: #CBE6FF;
+            --md-surface: #0E1320;
+            --md-surface-container: #151B2B;
+            --md-surface-container-high: #1D2436;
+            --md-on-surface: #E6ECF5;
+            --md-on-surface-variant: #9AA6BD;
+            --md-outline: #3A465C;
+            --md-outline-variant: #242E42;
         }
 
         * {
@@ -28,55 +30,73 @@
             font-family: 'Roboto', 'Microsoft YaHei', '微软雅黑', system-ui, -apple-system, "Segoe UI", sans-serif;
         }
 
-        html, body {
-            height: 100%;
-            position: relative;
-        }
-
         body {
             background: var(--md-surface);
             color: var(--md-on-surface);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
+        /* 顶部蓝色光晕，呼应 Blue Archive 光环 */
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/gzp2DYV2.jpeg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: -1;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            height: 70vh;
+            background: radial-gradient(ellipse at center, rgba(77, 166, 255, 0.22), transparent 70%);
+            z-index: 0;
+            pointer-events: none;
         }
 
-        .content {
+        .app-bar {
             position: relative;
             z-index: 1;
-            padding: 20px;
-            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            gap: 14px;
+            padding: 20px 24px;
         }
 
-        .app {
-            background: var(--md-surface-container);
-            border-radius: 28px;
-            padding: 28px 24px 32px;
-            max-width: 720px;
-            width: 100%;
+        .logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            cursor: pointer;
+            object-fit: cover;
         }
 
-        .sub {
-            font-weight: bold;
-            color: var(--md-primary);
-            text-align: center;
+        .app-title .title {
             font-size: 20px;
-            margin-bottom: 16px;
-            letter-spacing: 2px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .app-title .subtitle {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            margin-top: 2px;
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 8px 20px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .player-card {
+            background: var(--md-surface-container);
+            border-radius: 24px;
+            padding: 12px;
         }
 
         video {
@@ -85,96 +105,58 @@
             border-radius: 16px;
             background: #000;
             display: block;
-            margin-bottom: 18px;
         }
 
-        .btn-group {
+        .segmented {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 10px;
+            gap: 4px;
+            background: var(--md-surface-container-high);
+            border-radius: 999px;
+            padding: 4px;
         }
 
         .btn {
-            padding: 8px 18px;
+            flex: 1;
+            padding: 10px 12px;
             background: transparent;
-            border: 1px solid var(--md-outline);
+            border: none;
             border-radius: 999px;
-            color: var(--md-on-surface);
+            color: var(--md-on-surface-variant);
             font-size: 14px;
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
+            transition: background 0.2s, color 0.2s;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
         .btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--md-primary);
+            color: var(--md-on-surface);
         }
         .btn.active {
             background: var(--md-primary);
             color: var(--md-on-primary);
-            border-color: var(--md-primary);
-        }
-        .btn.active:hover {
-            background: #7AB9FF;
         }
 
         .current-hint {
             text-align: center;
             font-size: 14px;
             color: var(--md-on-surface-variant);
-            margin-top: 6px;
         }
         .current-hint strong {
             color: var(--md-primary);
             font-weight: 600;
         }
 
-        p {
+        footer {
+            position: relative;
+            z-index: 1;
             text-align: center;
             color: var(--md-on-surface-variant);
             font-size: 13px;
-            padding: 16px;
+            padding: 20px;
         }
-        p a {
+        footer a {
             color: var(--md-primary);
             text-decoration: none;
-        }
-
-        @media (max-width: 768px) {
-            body::before {
-                background-image: url('https://webcnstatic.yostar.net/ba_cn_web/prod/upload/wallpaper/MefDndfh.jpeg');
-            }
-            .app {
-                padding: 18px 14px 22px;
-            }
-            .sub {
-                font-size: 17px;
-            }
-            .btn {
-                font-size: 13px;
-                padding: 6px 14px;
-            }
-        }
-
-        .top-left-logo {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            width: 256px;
-            height: auto;
-            z-index: 10;
-            border-radius: 8px;
-        }
-
-        @media (max-width: 768px) {
-            .top-left-logo {
-                width: 128px;
-                top: 10px;
-                left: 10px;
-            }
         }
 
         .toast-container {
@@ -213,16 +195,8 @@
             animation: toastOut 0.3s ease-in forwards;
         }
 
-        .toast .toast-icon {
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .toast .toast-msg {
-            flex: 1;
-            word-break: break-word;
-        }
-
+        .toast .toast-icon { font-size: 20px; flex-shrink: 0; }
+        .toast .toast-msg { flex: 1; word-break: break-word; }
         .toast .toast-close {
             background: none;
             border: none;
@@ -232,9 +206,7 @@
             padding: 0 4px;
             transition: color 0.2s;
         }
-        .toast .toast-close:hover {
-            color: var(--md-on-surface);
-        }
+        .toast .toast-close:hover { color: var(--md-on-surface); }
 
         .toast.info { border-left-color: var(--md-primary); }
         .toast.success { border-left-color: #4ade80; }
@@ -250,50 +222,50 @@
             to { transform: translateX(120%); opacity: 0; }
         }
 
-        @media (max-width: 480px) {
-            .toast-container {
-                top: 16px;
-                right: 16px;
-                left: 16px;
-                max-width: none;
-                width: auto;
-            }
-            .toast {
-                font-size: 14px;
-                padding: 12px 16px;
-            }
+        @media (max-width: 600px) {
+            .app-bar { padding: 14px 16px; }
+            .app-title .title { font-size: 17px; }
+            .main { padding: 4px 12px 24px; }
+            .btn { font-size: 12px; padding: 8px 6px; }
+            .toast-container { top: 16px; right: 16px; left: 16px; max-width: none; width: auto; }
+            .toast { font-size: 14px; padding: 12px 16px; }
         }
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
 
-    <div class="content">
-        <img src="Logo.png" alt="Logo" class="top-left-logo" onclick="switchToNZS()" />
-        <div class="app">
-            <div class="sub">Blue Archive (点击左上角图片有惊喜)</div>
+    <header class="app-bar">
+        <img src="Logo.png" alt="Logo" class="logo" onclick="switchToNZS()" />
+        <div class="app-title">
+            <div class="title">Blue Archive</div>
+            <div class="subtitle">点击左上角 Logo 有惊喜</div>
+        </div>
+    </header>
 
+    <main class="main">
+        <div class="player-card">
             <video id="player" width="100%" height="auto" autoplay muted loop controls webkit-playsinline preload="metadata">
                 <source src="BA1STPV.mp4" type="video/mp4">
                 Error: Your browser cannot play the video.
                 错误： 您的浏览器不支持此视频播放。
             </video>
-
-            <div class="btn-group" id="btnGroup">
-                <button class="btn active" data-video="BA1STPV.mp4" data-name="BA 1ST PV">BA 1ST PV</button>
-                <button class="btn" data-video="GGF.mp4" data-name="GGF">GGF</button>
-                <button class="btn" data-video="LuminousMemory.mp4" data-name="Luminous Memory">Luminous Memory</button>
-            </div>
-
-            <div class="current-hint">
-                当前播放：<strong id="currentName"></strong>
-            </div>
         </div>
-        
-    </div>
-    <p>
+
+        <div class="segmented" id="btnGroup">
+            <button class="btn active" data-video="BA1STPV.mp4" data-name="BA 1ST PV">BA 1ST PV</button>
+            <button class="btn" data-video="GGF.mp4" data-name="GGF">GGF</button>
+            <button class="btn" data-video="LuminousMemory.mp4" data-name="Luminous Memory">Luminous Memory</button>
+        </div>
+
+        <div class="current-hint">
+            当前播放：<strong id="currentName"></strong>
+        </div>
+    </main>
+
+    <footer>
         2026 Qianchenawa. All rights reserved. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
-    </p>
+    </footer>
     <script>
         (function() {
             const video = document.getElementById('player');
