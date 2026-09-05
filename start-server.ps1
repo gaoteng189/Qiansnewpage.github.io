@@ -107,9 +107,9 @@ function Set-PortValue {
         Write-Host 'Please stop services before changing the port.' -ForegroundColor Red
         return
     }
-    $input = Read-Host "Current port is $port. Enter new port (1-65535)"
+    $portInput = Read-Host "Current port is $port. Enter new port (1-65535)"
     $newPort = 0
-    if ($input -match '^\d+$') { $newPort = [int]$input }
+    if ($portInput -match '^\d+$') { $newPort = [int]$portInput }
     if ($newPort -ge 1 -and $newPort -le 65535) {
         $port = $newPort
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
