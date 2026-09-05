@@ -1,7 +1,6 @@
 # ============================================================
 #  Message Board Console (TUI)
-#  Start/stop backend + Cloudflare Tunnel, set port,
-#  and auto-update the message page's WebSocket URL.
+#  Start/stop the message board HTTP backend and set port.
 # ============================================================
 
 # Self-elevate to administrator if not already running elevated.
@@ -16,10 +15,8 @@ if (-not $isAdmin) {
 
 $ErrorActionPreference = 'Stop'
 $root     = Split-Path -Parent $MyInvocation.MyCommand.Path
-$page     = Join-Path $root 'message\index.html'
-$outLog   = Join-Path $root '.cloudflared.out.log'
-$errLog   = Join-Path $root '.cloudflared.err.log'
 $portFile = Join-Path $root '.server-port'
+$boardUrl = 'https://qiansnewpage-github-io.pages.dev/message/'
 
 # Load saved port (default 50304)
 $port = 50304
@@ -28,21 +25,7 @@ if (Test-Path $portFile) {
     if ($saved -match '^\d+$') { $port = [int]$saved }
 }
 
-$script:nodeProc   = $null
-$script:tunnelProc = $null
-$script:tunnelUrl  = $null
-
-# ---------- WS_URL helpers ----------
-function Set-WsUrl([string]$url) {
-    $content = [System.IO.File]::ReadAllText($page)
-    $newContent = [regex]::Replace($content, "var WS_URL = 'wss://[^']+';", "var WS_URL = '$url';")
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($page, $newContent, $utf8NoBom)
-}
-
-function Reset-WsUrl {
-    Set-WsUrl 'wss://YOUR-TUNNEL.trycloudflare.com'
-}
+$script:nodeProc = $null
 
 # ---------- process helpers ----------
 function Get-Running($proc) {
@@ -50,17 +33,11 @@ function Get-Running($proc) {
 }
 
 function Stop-Services {
-    if (Get-Running $script:tunnelProc) {
-        Stop-Process -Id $script:tunnelProc.Id -Force -ErrorAction SilentlyContinue
-    }
     if (Get-Running $script:nodeProc) {
         Stop-Process -Id $script:nodeProc.Id -Force -ErrorAction SilentlyContinue
     }
-    $script:nodeProc   = $null
-    $script:tunnelProc = $null
-    $script:tunnelUrl  = $null
-    Reset-WsUrl
-    Write-Host 'Services stopped. Message page URL reset to placeholder.' -ForegroundColor Yellow
+    $script:nodeProc = $null
+    Write-Host 'Backend stopped.' -ForegroundColor Yellow
 }
 
 function Start-Services {
@@ -70,36 +47,9 @@ function Start-Services {
     }
     Write-Host "Starting backend server.js (port $port)..." -ForegroundColor Yellow
     $script:nodeProc = Start-Process -FilePath 'node' -ArgumentList 'server.js',"$port" -WorkingDirectory $root -PassThru -WindowStyle Normal
-    Start-Sleep -Milliseconds 800
-
-    Write-Host 'Starting Cloudflare Tunnel...' -ForegroundColor Yellow
-    if (Test-Path $outLog) { Remove-Item $outLog -Force }
-    if (Test-Path $errLog) { Remove-Item $errLog -Force }
-    $script:tunnelProc = Start-Process -FilePath 'cloudflared' -ArgumentList 'tunnel','--url',"http://localhost:$port" -WorkingDirectory $root -RedirectStandardOutput $outLog -RedirectStandardError $errLog -PassThru -WindowStyle Normal
-
-    Write-Host 'Waiting for tunnel URL...' -ForegroundColor Yellow
-    $url = $null
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    while ($sw.Elapsed.TotalSeconds -lt 90) {
-        Start-Sleep -Milliseconds 500
-        $log = ''
-        if (Test-Path $outLog) { $log += (Get-Content $outLog -Raw -ErrorAction SilentlyContinue) }
-        if (Test-Path $errLog) { $log += (Get-Content $errLog -Raw -ErrorAction SilentlyContinue) }
-        if ($log -match 'https://([a-z0-9-]+\.trycloudflare\.com)') { $url = $Matches[1]; break }
-        if ($script:tunnelProc.HasExited) { break }
-    }
-
-    if (-not $url) {
-        Write-Host 'Failed to obtain tunnel URL. Check cloudflared.' -ForegroundColor Red
-        Stop-Services
-        return
-    }
-
-    $script:tunnelUrl = "https://$url"
-    Set-WsUrl "wss://$url"
     Write-Host ''
-    Write-Host "  Tunnel URL : $script:tunnelUrl" -ForegroundColor Green
-    Write-Host "  Message page updated to: wss://$url" -ForegroundColor Green
+    Write-Host "  Board URL  : $boardUrl" -ForegroundColor Green
+    Write-Host '  (board is served via Cloudflare Pages -> OpenFrp -> this backend)' -ForegroundColor Green
 }
 
 function Set-PortValue {
@@ -122,10 +72,8 @@ function Set-PortValue {
 
 function Show-Menu {
     Clear-Host
-    $nodeRunning   = Get-Running $script:nodeProc
-    $tunnelRunning = Get-Running $script:tunnelProc
-    $nodeState     = if ($nodeRunning) { 'Running' } else { 'Stopped' }
-    $tunnelState   = if ($tunnelRunning) { 'Running' } else { 'Stopped' }
+    $nodeRunning = Get-Running $script:nodeProc
+    $nodeState   = if ($nodeRunning) { 'Running' } else { 'Stopped' }
 
     Write-Host '========================================' -ForegroundColor Cyan
     Write-Host '       Message Board Console' -ForegroundColor Cyan
@@ -133,10 +81,7 @@ function Show-Menu {
     Write-Host ''
     Write-Host "  Port           : $port"
     Write-Host "  Backend (node) : $nodeState"
-    Write-Host "  Tunnel         : $tunnelState"
-    if ($script:tunnelUrl) {
-        Write-Host "  Tunnel URL     : $script:tunnelUrl"
-    }
+    Write-Host "  Board URL      : $boardUrl"
     Write-Host ''
     Write-Host '  [1] Start services'
     Write-Host '  [2] Stop services'

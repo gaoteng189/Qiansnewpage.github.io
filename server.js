@@ -8,6 +8,10 @@
  *   http://localhost:50304             —— 站点首页
  *   http://localhost:50304/message/    —— 留言板页面
  *
+ * HTTP 接口：
+ *   GET  /api/messages    —— 读取全部留言
+ *   POST /api/messages    —— 发布留言（JSON：{ name, message }）
+ *
  * 留言数据保存在服务器所在主机的 messages.json 文件中。
  */
 'use strict';
@@ -15,7 +19,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 
 const PORT = process.argv[2] || process.env.PORT || 50304;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -52,17 +55,6 @@ function readMessages() {
 
 function writeMessages(list) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf8');
-}
-
-// 当前隧道地址（由启动程序写入，留言板动态读取）
-const TUNNEL_URL_FILE = path.join(ROOT, 'tunnel-url.txt');
-
-function readTunnelUrl() {
-  try {
-    return fs.readFileSync(TUNNEL_URL_FILE, 'utf8').trim();
-  } catch (e) {
-    return '';
-  }
 }
 
 // ---------- 工具 ----------
@@ -128,128 +120,6 @@ function serveStatic(res, urlPath) {
   });
 }
 
-// ---------- WebSocket（基于 TCP 的留言传输）----------
-const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-const clients = new Set();
-
-function wsSend(socket, payload, opcode) {
-  const data = Buffer.isBuffer(payload) ? payload : Buffer.from(String(payload), 'utf8');
-  const len = data.length;
-  let header;
-  if (len < 126) {
-    header = Buffer.from([0x80 | (opcode || 0x1), len]);
-  } else if (len < 65536) {
-    header = Buffer.alloc(4);
-    header[0] = 0x80 | (opcode || 0x1);
-    header[1] = 126;
-    header.writeUInt16BE(len, 2);
-  } else {
-    header = Buffer.alloc(10);
-    header[0] = 0x80 | (opcode || 0x1);
-    header[1] = 127;
-    header.writeBigUInt64BE(BigInt(len), 2);
-  }
-  socket.write(Buffer.concat([header, data]));
-}
-
-function wsParseFrame(buf) {
-  if (buf.length < 2) return null;
-  const opcode = buf[0] & 0x0f;
-  const masked = (buf[1] & 0x80) !== 0;
-  let len = buf[1] & 0x7f;
-  let offset = 2;
-  if (len === 126) {
-    if (buf.length < 4) return null;
-    len = buf.readUInt16BE(2);
-    offset = 4;
-  } else if (len === 127) {
-    if (buf.length < 10) return null;
-    len = Number(buf.readBigUInt64BE(2));
-    offset = 10;
-  }
-  let maskKey = null;
-  if (masked) {
-    if (buf.length < offset + 4) return null;
-    maskKey = buf.slice(offset, offset + 4);
-    offset += 4;
-  }
-  if (buf.length < offset + len) return null;
-  let payload = buf.slice(offset, offset + len);
-  if (masked && maskKey) {
-    const un = Buffer.alloc(len);
-    for (let i = 0; i < len; i++) un[i] = payload[i] ^ maskKey[i % 4];
-    payload = un;
-  }
-  return { opcode, payload, consumed: offset + len };
-}
-
-function wsBroadcast(text) {
-  for (const s of clients) {
-    try { wsSend(s, text); } catch (e) {}
-  }
-}
-
-function wsOnMessage(socket, text) {
-  let msg;
-  try { msg = JSON.parse(text); } catch (e) { return; }
-
-  if (msg.type === 'get') {
-    wsSend(socket, JSON.stringify({ type: 'list', messages: readMessages() }));
-  } else if (msg.type === 'post') {
-    const name = String(msg.name || '').trim().slice(0, 50);
-    const message = String(msg.message || '').trim().slice(0, 1000);
-    if (!message) {
-      wsSend(socket, JSON.stringify({ type: 'error', error: '留言内容不能为空' }));
-      return;
-    }
-    const item = {
-      id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
-      name: name || '匿名',
-      message,
-      time: new Date().toISOString()
-    };
-    const list = readMessages();
-    list.push(item);
-    try {
-      writeMessages(list);
-    } catch (e) {
-      wsSend(socket, JSON.stringify({ type: 'error', error: '写入留言失败：' + e.message }));
-      return;
-    }
-    console.log(`[留言] ${item.name}: ${item.message.slice(0, 80)}`);
-    wsBroadcast(JSON.stringify({ type: 'list', messages: list }));
-  }
-}
-
-function wsHandleSocket(socket) {
-  clients.add(socket);
-  let buffer = Buffer.alloc(0);
-
-  socket.on('data', (chunk) => {
-    buffer = Buffer.concat([buffer, chunk]);
-    while (true) {
-      const frame = wsParseFrame(buffer);
-      if (!frame) break;
-      buffer = buffer.slice(frame.consumed);
-      if (frame.opcode === 0x8) {
-        try { wsSend(socket, Buffer.alloc(0), 0x8); } catch (e) {}
-        socket.destroy();
-        return;
-      }
-      if (frame.opcode === 0x9) {
-        try { wsSend(socket, frame.payload, 0xA); } catch (e) {}
-        continue;
-      }
-      if (frame.opcode === 0x1) {
-        wsOnMessage(socket, frame.payload.toString('utf8'));
-      }
-    }
-  });
-
-  socket.on('close', () => clients.delete(socket));
-  socket.on('error', () => { clients.delete(socket); socket.destroy(); });
-}
-
 // ---------- 服务器 ----------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -271,13 +141,6 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type'
     });
     res.end();
-    return;
-  }
-
-  // 隧道地址查询（留言板动态发现地址）
-  if (pathname === '/api/tunnel-url') {
-    const url = readTunnelUrl();
-    send(res, 200, { url: url || null });
     return;
   }
 
@@ -332,27 +195,6 @@ const server = http.createServer(async (req, res) => {
 
   // 静态文件
   serveStatic(res, pathname);
-});
-
-// WebSocket 升级（留言走 TCP 长连接传输）
-server.on('upgrade', (req, socket) => {
-  if ((req.headers.upgrade || '').toLowerCase() !== 'websocket') {
-    socket.destroy();
-    return;
-  }
-  const key = req.headers['sec-websocket-key'];
-  if (!key) {
-    socket.destroy();
-    return;
-  }
-  const accept = crypto.createHash('sha1').update(key + WS_GUID).digest('base64');
-  socket.write(
-    'HTTP/1.1 101 Switching Protocols\r\n' +
-    'Upgrade: websocket\r\n' +
-    'Connection: Upgrade\r\n' +
-    'Sec-WebSocket-Accept: ' + accept + '\r\n\r\n'
-  );
-  wsHandleSocket(socket);
 });
 
 server.listen(PORT, HOST, () => {

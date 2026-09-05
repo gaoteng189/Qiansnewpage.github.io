@@ -10,6 +10,9 @@ node_modules/
 .cloudflared.log
 .node.log
 
+# 隧道地址文件（已废弃，改用固定 OpenFrp 地址）
+tunnel-url.txt
+
 # 端口配置
 .server-port
 

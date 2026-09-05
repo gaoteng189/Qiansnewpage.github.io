@@ -5,7 +5,7 @@
  * 转发到你本机通过 OpenFrp 内网穿透暴露的 HTTP 后端（node server.js）。
  * 数据仍由后端写入运行服务器主机上的 messages.json。
  */
-const UPSTREAM = 'http://qianawa.frpok.com';
+const UPSTREAM = 'http://1344a5becd3e.ofalias.com:41792';
 
 export async function onRequest(context) {
   const request = context.request;

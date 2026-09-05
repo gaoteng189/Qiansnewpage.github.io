@@ -1,6 +1,6 @@
 // ============================================================
 //  Message Board Console (Qt6 GUI)
-//  M3 棕色扁平化设计语言，启动/停止后端 + Cloudflare 隧道
+//  M3 棕色扁平化设计语言，启动/停止 HTTP 后端
 // ============================================================
 #include <QApplication>
 #include <QWidget>
@@ -91,9 +91,7 @@ QLineEdit:focus {
 
 static QString g_root;
 static int g_port = 50304;
-static QString g_tunnelUrl;
 static QProcess* g_node = nullptr;
-static QProcess* g_tunnel = nullptr;
 
 // ---------- 文件读写（UTF-8） ----------
 static QString readFile(const QString& path) {
@@ -122,19 +120,6 @@ static void savePort(int p) {
     writeFile(g_root + "/.server-port", QString::number(p));
 }
 
-// ---------- WS_URL ----------
-static void setWsUrl(const QString& url) {
-    QString path = g_root + "/message/index.html";
-    QString content = readFile(path);
-    QRegularExpression re("var WS_URL = 'wss://[^']+';");
-    content.replace(re, "var WS_URL = '" + url + "';");
-    writeFile(path, content);
-}
-
-static void resetWsUrl() {
-    setWsUrl("wss://YOUR-TUNNEL.trycloudflare.com");
-}
-
 // ---------- 提权 ----------
 static bool isElevated() {
     BOOL elevated = FALSE;
@@ -158,7 +143,7 @@ public:
 
         auto* title = new QLabel("Message Board Console", this);
         title->setObjectName("titleLabel");
-        auto* subtitle = new QLabel("Message board backend + Cloudflare Tunnel", this);
+        auto* subtitle = new QLabel("Message board HTTP backend", this);
         subtitle->setObjectName("subtitleLabel");
 
         // 状态卡片
@@ -172,11 +157,9 @@ public:
         portValue->setObjectName("statusValue");
         backendValue = new QLabel("Stopped", this);
         backendValue->setObjectName("statusValue");
-        tunnelValue = new QLabel("Stopped", this);
-        tunnelValue->setObjectName("statusValue");
-        urlValue = new QLabel("—", this);
-        urlValue->setObjectName("urlValue");
-        urlValue->setWordWrap(true);
+        boardValue = new QLabel("https://qiansnewpage-github-io.pages.dev/message/", this);
+        boardValue->setObjectName("urlValue");
+        boardValue->setWordWrap(true);
 
         auto addRow = [&](const QString& label, QLabel* value) {
             auto* row = new QHBoxLayout();
@@ -189,8 +172,7 @@ public:
         };
         addRow("Port", portValue);
         addRow("Backend (node)", backendValue);
-        addRow("Tunnel", tunnelValue);
-        addRow("Tunnel URL", urlValue);
+        addRow("Board URL", boardValue);
 
         // 按钮行
         startBtn = new QPushButton("Start", this);
@@ -259,37 +241,12 @@ private slots:
         g_node = new QProcess(this);
         g_node->setWorkingDirectory(g_root);
         g_node->start("node", { "server.js", QString::number(g_port) });
-
-        QTimer::singleShot(800, this, [this]() { startTunnel(); });
-    }
-
-    void startTunnel() {
-        g_tunnel = new QProcess(this);
-        g_tunnel->setWorkingDirectory(g_root);
-        g_tunnel->setProcessChannelMode(QProcess::MergedChannels);
-        connect(g_tunnel, &QProcess::readyReadStandardOutput, this, [this]() {
-            static QString buffer;
-            buffer += QString::fromUtf8(g_tunnel->readAllStandardOutput());
-            QRegularExpression re("https://([a-z0-9-]+\\.trycloudflare\\.com)");
-            auto m = re.match(buffer);
-            if (m.hasMatch()) {
-                QString host = m.captured(1);
-                g_tunnelUrl = "https://" + host;
-                setWsUrl("wss://" + host);
-                // 写入隧道地址文件，供留言板动态发现
-                writeFile(g_root + "/tunnel-url.txt", "wss://" + host);
-                hint->setText("Tunnel ready.");
-                refreshStatus();
-                buffer.clear();
-            }
-        });
-        g_tunnel->start("cloudflared", { "tunnel", "--url", "http://localhost:" + QString::number(g_port) });
-        hint->setText("Waiting for tunnel URL...");
+        hint->setText("Backend started. Board is served via Cloudflare Pages.");
     }
 
     void onStop() {
         stopServices();
-        hint->setText("Services stopped. URL reset to placeholder.");
+        hint->setText("Backend stopped.");
         refreshStatus();
     }
 
@@ -310,8 +267,6 @@ private slots:
     void refreshStatus() {
         portValue->setText(QString::number(g_port));
         backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
-        tunnelValue->setText(isRunning(g_tunnel) ? "Running" : "Stopped");
-        urlValue->setText(g_tunnelUrl.isEmpty() ? "—" : g_tunnelUrl);
     }
 
 private:
@@ -320,27 +275,17 @@ private:
     }
 
     void stopServices() {
-        if (isRunning(g_tunnel)) {
-            g_tunnel->kill();
-            g_tunnel->waitForFinished(2000);
-            g_tunnel->deleteLater();
-            g_tunnel = nullptr;
-        }
         if (isRunning(g_node)) {
             g_node->kill();
             g_node->waitForFinished(2000);
             g_node->deleteLater();
             g_node = nullptr;
         }
-        g_tunnelUrl.clear();
-        resetWsUrl();
-        writeFile(g_root + "/tunnel-url.txt", "");
     }
 
     QLabel* portValue;
     QLabel* backendValue;
-    QLabel* tunnelValue;
-    QLabel* urlValue;
+    QLabel* boardValue;
     QLabel* hint;
     QPushButton* startBtn;
     QPushButton* stopBtn;
