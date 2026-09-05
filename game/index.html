@@ -204,7 +204,7 @@
             <canvas id="game"></canvas>
             <div class="overlay" id="overlay">
                 <h2 id="overlayTitle">2D 跑酷</h2>
-                <p class="desc" id="overlayDesc">空格 / 点击画面 / 触摸 跳跃<br>支持二段跳，避开障碍物跑得越远越好</p>
+                <p class="desc" id="overlayDesc">空格 / 点击画面 / 触摸 跳跃<br>支持二段跳，避开障碍物，跑得越远越好</p>
                 <div class="final-score hidden" id="finalScore"></div>
                 <button class="btn" id="startBtn">开始游戏</button>
             </div>
@@ -299,7 +299,7 @@
             if (mode === 'ready') {
                 overlay.classList.remove('hidden');
                 overlayTitle.textContent = '2D 跑酷';
-                overlayDesc.textContent = '空格 / 点击画面 / 触摸 跳跃\n支持二段跳，避开障碍物跑得越远越好';
+                overlayDesc.textContent = '空格 / 点击画面 / 触摸 跳跃\n支持二段跳，避开障碍物，跑得越远越好';
                 finalScore.classList.add('hidden');
                 startBtn.textContent = '开始游戏';
             } else if (mode === 'over') {
