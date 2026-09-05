@@ -13,18 +13,14 @@ node_modules/
 # 端口配置
 .server-port
 
-# Qt 部署产物（windeployqt 生成）
-Qt6*.dll
-platforms/
-imageformats/
-styles/
-tls/
-generic/
-networkinformation/
-
-# MinGW 运行时与第三方依赖
-lib*.dll
-zlib1.dll
+# Qt 部署产物与运行时依赖（在 bin 目录）
+bin/*.dll
+bin/platforms/
+bin/imageformats/
+bin/styles/
+bin/tls/
+bin/generic/
+bin/networkinformation/
 
 # 编译中间产物
 start-server-res.o

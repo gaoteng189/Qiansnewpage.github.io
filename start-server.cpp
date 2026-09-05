@@ -348,7 +348,15 @@ private:
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setStyleSheet(M3_QSS);
-    g_root = QCoreApplication::applicationDirPath();
+    QString appDir = QCoreApplication::applicationDirPath();
+    // 若 exe 位于 bin/ 等子目录，则根目录指向 server.js 所在的上级目录
+    if (QFile::exists(appDir + "/server.js")) {
+        g_root = appDir;
+    } else {
+        QDir dir(appDir);
+        dir.cdUp();
+        g_root = dir.absolutePath();
+    }
     loadPort();
 
     if (!isElevated()) {
