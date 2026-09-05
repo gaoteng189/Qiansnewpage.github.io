@@ -54,6 +54,17 @@ function writeMessages(list) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf8');
 }
 
+// 当前隧道地址（由启动程序写入，留言板动态读取）
+const TUNNEL_URL_FILE = path.join(ROOT, 'tunnel-url.txt');
+
+function readTunnelUrl() {
+  try {
+    return fs.readFileSync(TUNNEL_URL_FILE, 'utf8').trim();
+  } catch (e) {
+    return '';
+  }
+}
+
 // ---------- 工具 ----------
 function send(res, status, payload, headers) {
   const body = JSON.stringify(payload);
@@ -260,6 +271,13 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type'
     });
     res.end();
+    return;
+  }
+
+  // 隧道地址查询（留言板动态发现地址）
+  if (pathname === '/api/tunnel-url') {
+    const url = readTunnelUrl();
+    send(res, 200, { url: url || null });
     return;
   }
 

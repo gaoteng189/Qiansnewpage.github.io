@@ -276,6 +276,8 @@ private slots:
                 QString host = m.captured(1);
                 g_tunnelUrl = "https://" + host;
                 setWsUrl("wss://" + host);
+                // 写入隧道地址文件，供留言板动态发现
+                writeFile(g_root + "/tunnel-url.txt", "wss://" + host);
                 hint->setText("Tunnel ready.");
                 refreshStatus();
                 buffer.clear();
@@ -332,6 +334,7 @@ private:
         }
         g_tunnelUrl.clear();
         resetWsUrl();
+        writeFile(g_root + "/tunnel-url.txt", "");
     }
 
     QLabel* portValue;

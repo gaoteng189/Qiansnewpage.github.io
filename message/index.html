@@ -224,9 +224,12 @@
 
     <script>
     (function () {
-        // 通过 Cloudflare Tunnel（wss）连接后端，HTTPS 页面可直连（无混合内容拦截）
-        // 运行 start-server.bat 会自动更新为最新隧道地址
-        var WS_URL = 'wss://YOUR-TUNNEL.trycloudflare.com';
+        // 动态发现隧道地址：先从固定地址获取当前 wss 地址，再连接
+        // - HTTP 环境：用 OpenFrp 固定地址查询
+        // - HTTPS 线上：用同源 /api/tunnel-url（CF Pages Functions 代理）
+        var DISCOVERY_URL = (location.protocol === 'https:')
+            ? '/api/tunnel-url'
+            : 'http://1344a5becd3e.ofalias.com:41792/api/tunnel-url';
         var ws = null;
         var connected = false;
 
@@ -280,8 +283,26 @@
 
         function connect() {
             if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+            setStatus('正在获取隧道地址…', false);
+            fetch(DISCOVERY_URL)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.url) {
+                        setStatus('未获取到隧道地址，请先启动服务', true);
+                        listEl.innerHTML = '<div class="empty">未获取到隧道地址，请先运行启动程序</div>';
+                        return;
+                    }
+                    openWebSocket(data.url);
+                })
+                .catch(function () {
+                    setStatus('无法连接服务器，请先启动服务', true);
+                    listEl.innerHTML = '<div class="empty">无法连接服务器，请先运行启动程序</div>';
+                });
+        }
+
+        function openWebSocket(url) {
             setStatus('连接中…', false);
-            ws = new WebSocket(WS_URL);
+            ws = new WebSocket(url);
 
             ws.onopen = function () {
                 connected = true;
