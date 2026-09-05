@@ -225,7 +225,8 @@
     <script>
     (function () {
         // 通过 Cloudflare Tunnel（wss）连接后端，HTTPS 页面可直连（无混合内容拦截）
-        var WS_URL = 'wss://isp-winds-control-velocity.trycloudflare.com';
+        // 运行 start-server.bat 会自动更新为最新隧道地址
+        var WS_URL = 'wss://YOUR-TUNNEL.trycloudflare.com';
         var ws = null;
         var connected = false;
 

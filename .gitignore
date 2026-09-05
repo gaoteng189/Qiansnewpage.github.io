@@ -3,3 +3,7 @@ messages.json
 
 # Node.js
 node_modules/
+
+# Cloudflare 隧道日志
+.cloudflared.out.log
+.cloudflared.err.log
