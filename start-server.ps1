@@ -1,6 +1,16 @@
 # One-click launcher: message board backend + Cloudflare Tunnel
 # Automatically updates the message page's WebSocket URL.
 
+# Self-elevate to administrator if not already running elevated.
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host 'Requesting administrator privileges...' -ForegroundColor Yellow
+    $myPath = $MyInvocation.MyCommand.Path
+    Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$myPath`"" -Verb RunAs -Wait
+    exit
+}
+
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $port = 50304
