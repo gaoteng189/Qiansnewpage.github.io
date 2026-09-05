@@ -7,3 +7,6 @@ node_modules/
 # Cloudflare 隧道日志
 .cloudflared.out.log
 .cloudflared.err.log
+
+# 端口配置
+.server-port

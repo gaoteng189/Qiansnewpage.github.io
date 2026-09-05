@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT || 50304;
+const PORT = process.argv[2] || process.env.PORT || 50304;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'messages.json');
