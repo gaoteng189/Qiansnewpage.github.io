@@ -489,23 +489,36 @@
             ctx.lineTo(ox, cssH);
             ctx.stroke();
 
-            // 函数曲线
+            // 函数曲线（裁剪到画布内绘制，避免缩放/平移后图像缺失）
             if (fn) {
                 ctx.strokeStyle = '#8D6E63';
                 ctx.lineWidth = 2;
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 0, cssW, cssH);
+                ctx.clip();
                 ctx.beginPath();
                 var started = false;
+                var prevY = null;
+                var visH = cssH / scale;
                 for (var px = 0; px <= cssW; px++) {
                     var wx = (px - ox) / scale;
                     var y;
-                    try { y = fn(wx); } catch (e) { started = false; continue; }
-                    if (typeof y !== 'number' || !isFinite(y)) { started = false; continue; }
+                    try { y = fn(wx); } catch (e) { started = false; prevY = null; continue; }
+                    if (typeof y !== 'number' || !isFinite(y)) { started = false; prevY = null; continue; }
+                    // 渐近线/不连续点检测：符号翻转且两端超可视范围，或值突变
+                    if (prevY !== null) {
+                        var signFlip = (prevY * y < 0 && Math.abs(prevY) > visH && Math.abs(y) > visH);
+                        var hugeJump = Math.abs(y - prevY) > visH * 1000;
+                        if (signFlip || hugeJump) started = false;
+                    }
                     var py = oy - y * scale;
-                    if (py < -cssH * 2 || py > cssH * 3) { started = false; continue; }
                     if (!started) { ctx.moveTo(px, py); started = true; }
                     else { ctx.lineTo(px, py); }
+                    prevY = y;
                 }
                 ctx.stroke();
+                ctx.restore();
             }
         }
 
