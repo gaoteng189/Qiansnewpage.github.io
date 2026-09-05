@@ -22,10 +22,9 @@ tls/
 generic/
 networkinformation/
 
-# MinGW 运行时
-libgcc_s_seh-1.dll
-libstdc++-6.dll
-libwinpthread-1.dll
+# MinGW 运行时与第三方依赖
+lib*.dll
+zlib1.dll
 
 # 编译中间产物
 start-server-res.o
