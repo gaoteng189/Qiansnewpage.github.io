@@ -123,6 +123,25 @@ static void savePort(int p) {
     writeFile(g_root + "/.server-port", QString::number(p));
 }
 
+// ---------- 运行环境（Node.js / Tailscale）----------
+static const char* NODE_URL = "https://nodejs.org/dist/v24.20.0/node-v24.20.0-win-x64.zip";
+static const char* TAILSCALE_URL = "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe";
+
+static bool nodeExists() {
+    return QFile::exists(g_root + "/node/node.exe");
+}
+
+static bool tailscaleExists() {
+    return QFile::exists(QString::fromLatin1(TAILSCALE_EXE));
+}
+
+static bool downloadFile(const QString& url, const QString& dest) {
+    QProcess p;
+    p.start("curl.exe", { "-L", "-o", dest, url });
+    p.waitForFinished(-1);
+    return p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0 && QFile::exists(dest);
+}
+
 // ---------- 提权 ----------
 static bool isElevated() {
     BOOL elevated = FALSE;
@@ -142,7 +161,7 @@ class MainWindow : public QWidget {
 public:
     MainWindow() {
         setWindowTitle("Message Board Console");
-        setFixedSize(520, 480);
+        setFixedSize(520, 600);
 
         auto* title = new QLabel("Message Board Console", this);
         title->setObjectName("titleLabel");
@@ -163,6 +182,10 @@ public:
         boardValue = new QLabel("—", this);
         boardValue->setObjectName("urlValue");
         boardValue->setWordWrap(true);
+        nodeValue = new QLabel(this);
+        nodeValue->setObjectName("statusValue");
+        tailscaleValue = new QLabel(this);
+        tailscaleValue->setObjectName("statusValue");
 
         auto addRow = [&](const QString& label, QLabel* value) {
             auto* row = new QHBoxLayout();
@@ -176,15 +199,20 @@ public:
         addRow("Port", portValue);
         addRow("Backend (node)", backendValue);
         addRow("Funnel URL", boardValue);
+        addRow("Node.js", nodeValue);
+        addRow("Tailscale", tailscaleValue);
 
         // 按钮行
         startBtn = new QPushButton("Start", this);
         stopBtn = new QPushButton("Stop", this);
         stopBtn->setObjectName("stopBtn");
+        installBtn = new QPushButton("安装环境", this);
+        installBtn->setObjectName("setPortBtn");
         auto* btnRow = new QHBoxLayout();
         btnRow->addStretch();
         btnRow->addWidget(startBtn);
         btnRow->addWidget(stopBtn);
+        btnRow->addWidget(installBtn);
         btnRow->addStretch();
 
         // 端口行
@@ -225,6 +253,7 @@ public:
         connect(startBtn, &QPushButton::clicked, this, &MainWindow::onStart);
         connect(stopBtn, &QPushButton::clicked, this, &MainWindow::onStop);
         connect(setPortBtn, &QPushButton::clicked, this, &MainWindow::onSetPort);
+        connect(installBtn, &QPushButton::clicked, this, &MainWindow::installEnv);
 
         auto* timer = new QTimer(this);
         connect(timer, &QTimer::timeout, this, &MainWindow::refreshStatus);
@@ -288,7 +317,8 @@ private slots:
 
         g_node = new QProcess(this);
         g_node->setWorkingDirectory(g_root);
-        g_node->start("node", { "server.js", QString::number(g_port) });
+        QString nodeExe = nodeExists() ? (g_root + "/node/node.exe") : "node";
+        g_node->start(nodeExe, { "server.js", QString::number(g_port) });
 
         startFunnel();
         hint->setText("Backend started. Starting Tailscale Funnel...");
@@ -314,10 +344,61 @@ private slots:
         refreshStatus();
     }
 
+    // 下载并安装 Node.js（便携版，解压到项目根目录 node/ 目录）
+    void installNode() {
+        hint->setText("正在下载 Node.js...");
+        QString zip = g_root + "/node.zip";
+        if (!downloadFile(NODE_URL, zip)) {
+            hint->setText("下载 Node.js 失败，请检查网络");
+            return;
+        }
+        hint->setText("正在解压 Node.js...");
+        QProcess p;
+        p.start("tar.exe", { "-xf", zip, "-C", g_root });
+        p.waitForFinished(-1);
+        QFile::remove(zip);
+        QDir old(g_root + "/node");
+        if (old.exists()) old.removeRecursively();
+        if (QDir().rename(g_root + "/node-v24.20.0-win-x64", g_root + "/node")) {
+            hint->setText("Node.js 安装完成");
+        } else {
+            hint->setText("Node.js 解压完成，但目录重命名失败");
+        }
+        refreshStatus();
+    }
+
+    // 下载并安装 Tailscale（官方安装器，需 UAC 提权）
+    void installTailscale() {
+        hint->setText("正在下载 Tailscale...");
+        QString exe = g_root + "/tailscale-setup.exe";
+        if (!downloadFile(TAILSCALE_URL, exe)) {
+            hint->setText("下载 Tailscale 失败，请检查网络");
+            return;
+        }
+        hint->setText("正在启动 Tailscale 安装程序（请确认 UAC）...");
+        ShellExecuteW(nullptr, L"runas",
+                      reinterpret_cast<const wchar_t*>(exe.utf16()),
+                      nullptr, nullptr, SW_SHOWNORMAL);
+        hint->setText("Tailscale 安装程序已启动，完成后请登录");
+        refreshStatus();
+    }
+
+    // 一键安装缺失的依赖
+    void installEnv() {
+        if (!nodeExists()) installNode();
+        if (!tailscaleExists()) installTailscale();
+        if (nodeExists() && tailscaleExists()) {
+            hint->setText("运行环境已就绪");
+        }
+        refreshStatus();
+    }
+
     void refreshStatus() {
         portValue->setText(QString::number(g_port));
         backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
         boardValue->setText(g_funnelUrl.isEmpty() ? "—" : g_funnelUrl + "/message/");
+        nodeValue->setText(nodeExists() ? "Installed" : "Missing");
+        tailscaleValue->setText(tailscaleExists() ? "Installed" : "Missing");
     }
 
 private:
@@ -340,10 +421,13 @@ private:
     QLabel* portValue;
     QLabel* backendValue;
     QLabel* boardValue;
+    QLabel* nodeValue;
+    QLabel* tailscaleValue;
     QLabel* hint;
     QPushButton* startBtn;
     QPushButton* stopBtn;
     QPushButton* setPortBtn;
+    QPushButton* installBtn;
     QLineEdit* portEdit;
 };
 
