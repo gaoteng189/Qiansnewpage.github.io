@@ -16,9 +16,11 @@
 #include <QRegularExpression>
 #include <QDir>
 #include <QProgressBar>
+#include <QMessageBox>
 
 #include <windows.h>
 #include <shellapi.h>
+#include <winreg.h>
 
 // ---------- M3 棕色 QSS ----------
 static const char* M3_QSS = R"(
@@ -146,6 +148,40 @@ static bool tailscaleExists() {
     return QFile::exists(QString::fromLatin1(TAILSCALE_EXE));
 }
 
+// 通过注册表查找 Tailscale 的 MSI 卸载命令
+static QString tailscaleUninstallString() {
+    HKEY hk = nullptr;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                      L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+                      0, KEY_READ, &hk) != ERROR_SUCCESS)
+        return QString();
+    QString result;
+    wchar_t name[256];
+    DWORD i = 0;
+    for (;;) {
+        DWORD nameLen = 256;
+        if (RegEnumKeyExW(hk, i++, name, &nameLen, nullptr, nullptr, nullptr, nullptr) != ERROR_SUCCESS)
+            break;
+        HKEY sub = nullptr;
+        if (RegOpenKeyExW(hk, name, 0, KEY_READ, &sub) == ERROR_SUCCESS) {
+            wchar_t dn[256] = {0};
+            DWORD dnLen = sizeof(dn);
+            wchar_t us[512] = {0};
+            DWORD usLen = sizeof(us);
+            if (RegQueryValueExW(sub, L"DisplayName", nullptr, nullptr, (LPBYTE)dn, &dnLen) == ERROR_SUCCESS &&
+                lstrcmpW(dn, L"Tailscale") == 0) {
+                if (RegQueryValueExW(sub, L"UninstallString", nullptr, nullptr, (LPBYTE)us, &usLen) == ERROR_SUCCESS)
+                    result = QString::fromWCharArray(us);
+                RegCloseKey(sub);
+                break;
+            }
+            RegCloseKey(sub);
+        }
+    }
+    RegCloseKey(hk);
+    return result;
+}
+
 // 获取远端文件大小（curl HEAD，跟随重定向）
 static qint64 httpSize(const QString& url) {
     QProcess p;
@@ -184,7 +220,7 @@ class MainWindow : public QWidget {
 public:
     MainWindow() {
         setWindowTitle("Message Board Console");
-        setFixedSize(520, 620);
+        setFixedSize(520, 660);
 
         auto* title = new QLabel("Message Board Console", this);
         title->setObjectName("titleLabel");
@@ -225,18 +261,25 @@ public:
         addRow("Node.js", nodeValue);
         addRow("Tailscale", tailscaleValue);
 
-        // 按钮行
+        // 按钮行 1（服务控制）
         startBtn = new QPushButton("Start", this);
         stopBtn = new QPushButton("Stop", this);
         stopBtn->setObjectName("stopBtn");
+        auto* btnRow1 = new QHBoxLayout();
+        btnRow1->addStretch();
+        btnRow1->addWidget(startBtn);
+        btnRow1->addWidget(stopBtn);
+        btnRow1->addStretch();
+
+        // 按钮行 2（环境管理）
         installBtn = new QPushButton("安装环境", this);
         installBtn->setObjectName("setPortBtn");
-        auto* btnRow = new QHBoxLayout();
-        btnRow->addStretch();
-        btnRow->addWidget(startBtn);
-        btnRow->addWidget(stopBtn);
-        btnRow->addWidget(installBtn);
-        btnRow->addStretch();
+        cleanBtn = new QPushButton("清理环境", this);
+        auto* btnRow2 = new QHBoxLayout();
+        btnRow2->addStretch();
+        btnRow2->addWidget(installBtn);
+        btnRow2->addWidget(cleanBtn);
+        btnRow2->addStretch();
 
         // 端口行
         auto* portRow = new QHBoxLayout();
@@ -275,7 +318,8 @@ public:
         layout->addSpacing(4);
         layout->addWidget(card);
         layout->addSpacing(4);
-        layout->addLayout(btnRow);
+        layout->addLayout(btnRow1);
+        layout->addLayout(btnRow2);
         layout->addLayout(portRow);
         layout->addWidget(progressBar);
         layout->addWidget(hint);
@@ -285,6 +329,7 @@ public:
         connect(stopBtn, &QPushButton::clicked, this, &MainWindow::onStop);
         connect(setPortBtn, &QPushButton::clicked, this, &MainWindow::onSetPort);
         connect(installBtn, &QPushButton::clicked, this, &MainWindow::installEnv);
+        connect(cleanBtn, &QPushButton::clicked, this, &MainWindow::cleanEnv);
 
         auto* timer = new QTimer(this);
         connect(timer, &QTimer::timeout, this, &MainWindow::refreshStatus);
@@ -482,6 +527,49 @@ private slots:
         hint->setText("运行环境已就绪");
     }
 
+    // 一键清理（卸载）环境：删除 Node 便携版 + 卸载 Tailscale
+    void cleanEnv() {
+        if (dlProc && dlProc->state() != QProcess::NotRunning) {
+            hint->setText("正在安装中，请先等待完成");
+            return;
+        }
+        bool hasNode = nodeExists();
+        bool hasTail = tailscaleExists();
+        if (!hasNode && !hasTail) {
+            hint->setText("没有需要清理的环境");
+            return;
+        }
+        QStringList items;
+        if (hasNode) items << "Node.js（便携版目录）";
+        if (hasTail) items << "Tailscale";
+        auto ret = QMessageBox::question(this, "清理环境",
+            "确定要卸载以下环境吗？\n\n  · " + items.join("\n  · ") + "\n\n此操作不可撤销。",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (ret != QMessageBox::Yes) return;
+
+        stopServices();
+
+        if (hasNode) {
+            QDir(g_root + "/node").removeRecursively();
+            QFile::remove(g_root + "/node.zip");
+        }
+        QFile::remove(g_root + "/tailscale-setup.exe");
+
+        if (hasTail) {
+            QString us = tailscaleUninstallString();
+            if (!us.isEmpty()) {
+                hint->setText("正在启动 Tailscale 卸载程序...");
+                QProcess::startDetached("cmd.exe", QStringList() << "/c" << us);
+                hint->setText("Tailscale 卸载程序已启动，请在弹出的窗口中完成卸载");
+            } else {
+                hint->setText("未找到 Tailscale 卸载信息，请通过控制面板卸载");
+            }
+        } else {
+            hint->setText("环境已清理");
+        }
+        refreshStatus();
+    }
+
     void refreshStatus() {
         portValue->setText(QString::number(g_port));
         backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
@@ -517,6 +605,7 @@ private:
     QPushButton* stopBtn;
     QPushButton* setPortBtn;
     QPushButton* installBtn;
+    QPushButton* cleanBtn;
     QLineEdit* portEdit;
     QProgressBar* progressBar;
     QProcess* dlProc = nullptr;
