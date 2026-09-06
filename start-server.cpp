@@ -92,6 +92,7 @@ QLineEdit:focus {
 static QString g_root;
 static int g_port = 50304;
 static QProcess* g_node = nullptr;
+static QString g_funnelUrl;
 
 // ---------- 文件读写（UTF-8） ----------
 static QString readFile(const QString& path) {
@@ -143,7 +144,7 @@ public:
 
         auto* title = new QLabel("Message Board Console", this);
         title->setObjectName("titleLabel");
-        auto* subtitle = new QLabel("Message board HTTP backend", this);
+        auto* subtitle = new QLabel("Message board backend + Tailscale Funnel", this);
         subtitle->setObjectName("subtitleLabel");
 
         // 状态卡片
@@ -157,7 +158,7 @@ public:
         portValue->setObjectName("statusValue");
         backendValue = new QLabel("Stopped", this);
         backendValue->setObjectName("statusValue");
-        boardValue = new QLabel("https://qiansnewpage-github-io.pages.dev/message/", this);
+        boardValue = new QLabel("—", this);
         boardValue->setObjectName("urlValue");
         boardValue->setWordWrap(true);
 
@@ -172,7 +173,7 @@ public:
         };
         addRow("Port", portValue);
         addRow("Backend (node)", backendValue);
-        addRow("Board URL", boardValue);
+        addRow("Funnel URL", boardValue);
 
         // 按钮行
         startBtn = new QPushButton("Start", this);
@@ -231,6 +232,39 @@ public:
     }
 
 private slots:
+    // 启动 Tailscale Funnel（后台模式，公网地址固定为 https://xxx.ts.net）
+    void startFunnel() {
+        auto* p = new QProcess(this);
+        connect(p, &QProcess::finished, p, &QObject::deleteLater);
+        p->start("tailscale", { "funnel", "--bg", QString::number(g_port) });
+        QTimer::singleShot(2000, this, [this]() { queryFunnelUrl(); });
+    }
+
+    // 查询并解析 Funnel 固定地址
+    void queryFunnelUrl() {
+        auto* p = new QProcess(this);
+        p->setProcessChannelMode(QProcess::MergedChannels);
+        connect(p, &QProcess::finished, this, [this, p](int, QProcess::ExitStatus) {
+            QString out = QString::fromUtf8(p->readAllStandardOutput());
+            QRegularExpression re("https://[a-z0-9-]+\\.ts\\.net");
+            auto m = re.match(out);
+            if (m.hasMatch()) {
+                g_funnelUrl = m.captured(0);
+                hint->setText("Funnel ready: " + g_funnelUrl);
+            }
+            p->deleteLater();
+            refreshStatus();
+        });
+        p->start("tailscale", { "funnel", "status" });
+    }
+
+    // 关闭 Funnel
+    void stopFunnel() {
+        auto* p = new QProcess(this);
+        connect(p, &QProcess::finished, p, &QObject::deleteLater);
+        p->start("tailscale", { "funnel", "reset" });
+    }
+
     void onStart() {
         if (isRunning(g_node)) {
             hint->setText("Services are already running.");
@@ -241,7 +275,9 @@ private slots:
         g_node = new QProcess(this);
         g_node->setWorkingDirectory(g_root);
         g_node->start("node", { "server.js", QString::number(g_port) });
-        hint->setText("Backend started. Board is served via Cloudflare Pages.");
+
+        startFunnel();
+        hint->setText("Backend started. Starting Tailscale Funnel...");
     }
 
     void onStop() {
@@ -267,6 +303,7 @@ private slots:
     void refreshStatus() {
         portValue->setText(QString::number(g_port));
         backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
+        boardValue->setText(g_funnelUrl.isEmpty() ? "—" : g_funnelUrl + "/message/");
     }
 
 private:
@@ -275,12 +312,14 @@ private:
     }
 
     void stopServices() {
+        stopFunnel();
         if (isRunning(g_node)) {
             g_node->kill();
             g_node->waitForFinished(2000);
             g_node->deleteLater();
             g_node = nullptr;
         }
+        g_funnelUrl.clear();
     }
 
     QLabel* portValue;
