@@ -20,6 +20,7 @@ bin/networkinformation/
 start-server-res.o
 start-server-core.exe
 bin/start-server-core.exe
+bin/start-server-core-new.exe
 stub.o
 stub-icon.o
 stub-res.o
@@ -40,3 +41,4 @@ Makefile.Debug
 
 # 调试日志
 funnel-debug.log
+console.log

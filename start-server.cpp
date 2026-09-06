@@ -17,6 +17,7 @@
 #include <QDir>
 #include <QProgressBar>
 #include <QMessageBox>
+#include <QDateTime>
 
 #include <windows.h>
 #include <shellapi.h>
@@ -120,6 +121,16 @@ static void writeFile(const QString& path, const QString& content) {
     QFile f(path);
     if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         f.write(content.toUtf8());
+        f.close();
+    }
+}
+
+// ---------- 日志系统 ----------
+static void logMsg(const QString& msg) {
+    QFile f(g_root + "/console.log");
+    if (f.open(QIODevice::WriteOnly | QIODevice::Append)) {
+        QString line = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + msg + "\n";
+        f.write(line.toUtf8());
         f.close();
     }
 }
@@ -342,6 +353,7 @@ private slots:
     // 启动 Tailscale Funnel（后台模式，公网地址固定为 https://xxx.ts.net）
     void startFunnel() {
         funnelRetry = 0;
+        logMsg("启动 Tailscale Funnel，端口 " + QString::number(g_port));
         auto* p = new QProcess(this);
         connect(p, &QProcess::finished, p, &QObject::deleteLater);
         p->start(TAILSCALE_EXE, { "funnel", "--bg", QString::number(g_port) });
@@ -365,11 +377,13 @@ private slots:
             if (it.hasNext()) {
                 g_funnelUrl = it.next().captured(0);
                 hint->setText("Funnel 就绪：" + g_funnelUrl);
+                logMsg("Funnel 地址就绪: " + g_funnelUrl);
             } else if (funnelRetry < 5) {
                 funnelRetry++;
                 QTimer::singleShot(2000, this, [this]() { queryFunnelUrl(); });
             } else {
                 hint->setText("未检测到 Funnel 地址，请检查 Tailscale。");
+                logMsg("未检测到 Funnel 地址（重试 " + QString::number(funnelRetry) + " 次）");
             }
             p->deleteLater();
             refreshStatus();
@@ -379,6 +393,7 @@ private slots:
 
     // 关闭 Funnel
     void stopFunnel() {
+        logMsg("重置 Tailscale Funnel");
         auto* p = new QProcess(this);
         connect(p, &QProcess::finished, p, &QObject::deleteLater);
         p->start(TAILSCALE_EXE, { "funnel", "reset" });
@@ -395,12 +410,14 @@ private slots:
         g_node->setWorkingDirectory(g_root);
         QString nodeExe = nodeExists() ? (g_root + "/node/node.exe") : "node";
         g_node->start(nodeExe, { "server.js", QString::number(g_port) });
+        logMsg("启动后端: node server.js 端口 " + QString::number(g_port));
 
         startFunnel();
         hint->setText("后端已启动，正在启动 Tailscale Funnel...");
     }
 
     void onStop() {
+        logMsg("停止后端服务");
         stopServices();
         hint->setText("后端已停止。");
         refreshStatus();
@@ -414,6 +431,7 @@ private slots:
             savePort(p);
             portEdit->setText(QString::number(p));
             hint->setText("端口已设置为 " + QString::number(p));
+            logMsg("端口设置为 " + QString::number(p));
         } else {
             hint->setText("无效端口（1-65535）。");
         }
@@ -428,6 +446,7 @@ private slots:
         progressBar->setRange(0, 100);
         progressBar->setValue(0);
         hint->setText(stage == "node" ? "正在下载 Node.js..." : "正在下载 Tailscale...");
+        logMsg("开始下载 " + QString(stage == "node" ? "Node.js" : "Tailscale") + ": " + url);
 
         if (dlProc) { dlProc->deleteLater(); dlProc = nullptr; }
         dlProc = new QProcess(this);
@@ -464,6 +483,7 @@ private slots:
             progressBar->setRange(0, 100);
             progressBar->setValue(0);
             hint->setText("下载失败，请检查网络后重试");
+            logMsg("下载失败: " + dlStage + " (exit " + QString::number(code) + ")");
             refreshStatus();
             return;
         }
@@ -485,6 +505,7 @@ private slots:
             progressBar->setRange(0, 100);
             progressBar->setValue(0);
             hint->setText(ok ? "Node.js 安装完成" : "Node.js 解压完成，但目录重命名失败");
+            logMsg(ok ? "Node.js 安装完成" : "Node.js 解压完成但目录重命名失败");
             refreshStatus();
             continueInstall();
         });
@@ -496,6 +517,7 @@ private slots:
         progressBar->setRange(0, 100);
         progressBar->setValue(100);
         hint->setText("正在启动 Tailscale 安装程序（请确认 UAC）...");
+        logMsg("启动 Tailscale 安装程序");
         ShellExecuteW(nullptr, L"runas",
                       reinterpret_cast<const wchar_t*>(dlDest.utf16()),
                       nullptr, nullptr, SW_SHOWNORMAL);
@@ -522,6 +544,8 @@ private slots:
         }
         if (!nodeExists()) { startDownload(NODE_URL, g_root + "/node.zip", "node"); return; }
         if (!tailscaleExists()) { startDownload(TAILSCALE_URL, g_root + "/tailscale-setup.exe", "tailscale"); return; }
+        logMsg("检查环境: Node=" + QString(nodeExists() ? "已安装" : "未安装") +
+               "，Tailscale=" + QString(tailscaleExists() ? "已安装" : "未安装"));
         progressBar->setRange(0, 100);
         progressBar->setValue(100);
         hint->setText("运行环境已就绪");
@@ -548,6 +572,7 @@ private slots:
         if (ret != QMessageBox::Yes) return;
 
         stopServices();
+        logMsg("清理环境: " + items.join(", "));
 
         if (hasNode) {
             QDir(g_root + "/node").removeRecursively();
@@ -559,6 +584,7 @@ private slots:
             QString us = tailscaleUninstallString();
             if (!us.isEmpty()) {
                 hint->setText("正在启动 Tailscale 卸载程序...");
+                logMsg("Tailscale 卸载命令: " + us);
                 QProcess::startDetached("cmd.exe", QStringList() << "/c" << us);
                 hint->setText("Tailscale 卸载程序已启动，请在弹出的窗口中完成卸载");
             } else {
@@ -619,13 +645,18 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setStyleSheet(M3_QSS);
 
-    // 单 exe 模式下，stub 通过环境变量传递项目根目录
+    // 定位项目根目录：
+    // 1) 优先读取 stub 写入的 root.txt（提权后环境变量可能丢失，文件最可靠）
+    // 2) 其次读环境变量 START_SERVER_ROOT
+    // 3) 最后按 exe 位置向上查找 server.js
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString fileRoot = readFile(appDir + "/root.txt").trimmed();
     QByteArray envRoot = qgetenv("START_SERVER_ROOT");
-    if (!envRoot.isEmpty()) {
+    if (!fileRoot.isEmpty() && QFile::exists(fileRoot + "/server.js")) {
+        g_root = fileRoot;
+    } else if (!envRoot.isEmpty()) {
         g_root = QString::fromLocal8Bit(envRoot);
     } else {
-        QString appDir = QCoreApplication::applicationDirPath();
-        // 若 exe 位于 bin/ 等子目录，则根目录指向 server.js 所在的上级目录
         if (QFile::exists(appDir + "/server.js")) {
             g_root = appDir;
         } else {
@@ -642,6 +673,9 @@ int main(int argc, char* argv[]) {
         ShellExecuteW(nullptr, L"runas", buf, nullptr, nullptr, SW_SHOWNORMAL);
         return 0;
     }
+
+    logMsg("==== 留言板控制台启动 ====");
+    logMsg("项目根目录: " + g_root + "，端口: " + QString::number(g_port));
 
     MainWindow w;
     w.show();

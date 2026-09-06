@@ -98,6 +98,19 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     }
     SetEnvironmentVariableW(L"START_SERVER_ROOT", root.c_str());
 
+    // 把根目录写入 root.txt（提权重启后环境变量可能丢失，文件更可靠）
+    {
+        std::string rootUtf8;
+        for (wchar_t c : root) rootUtf8 += (char)c;
+        HANDLE h = CreateFileW((g_dir + L"\\root.txt").c_str(), GENERIC_WRITE, 0, nullptr,
+                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (h != INVALID_HANDLE_VALUE) {
+            DWORD written = 0;
+            WriteFile(h, rootUtf8.c_str(), (DWORD)rootUtf8.size(), &written, nullptr);
+            CloseHandle(h);
+        }
+    }
+
     // 3. 运行 core
     std::wstring core = g_dir + L"\\start-server-core.exe";
     STARTUPINFOW si = { sizeof(si) };
