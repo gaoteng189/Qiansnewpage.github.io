@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QRegularExpression>
 #include <QDir>
+#include <QProgressBar>
 
 #include <windows.h>
 #include <shellapi.h>
@@ -88,6 +89,16 @@ QLineEdit {
 QLineEdit:focus {
     border: 2px solid #8D6E63;
 }
+QProgressBar {
+    background-color: #EFDBD1;
+    border: none;
+    border-radius: 5px;
+    height: 10px;
+}
+QProgressBar::chunk {
+    background-color: #8D6E63;
+    border-radius: 5px;
+}
 )";
 
 static QString g_root;
@@ -135,11 +146,23 @@ static bool tailscaleExists() {
     return QFile::exists(QString::fromLatin1(TAILSCALE_EXE));
 }
 
-static bool downloadFile(const QString& url, const QString& dest) {
+// 获取远端文件大小（curl HEAD，跟随重定向）
+static qint64 httpSize(const QString& url) {
     QProcess p;
-    p.start("curl.exe", { "-L", "-o", dest, url });
-    p.waitForFinished(-1);
-    return p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0 && QFile::exists(dest);
+    p.start("curl.exe", { "-sIL", url });
+    if (!p.waitForFinished(20000)) return -1;
+    QString out = QString::fromUtf8(p.readAllStandardOutput());
+    QRegularExpression re("(?i)content-length:\\s*(\\d+)");
+    qint64 last = -1;
+    auto it = re.globalMatch(out);
+    while (it.hasNext()) last = it.next().captured(1).toLongLong();
+    return last;
+}
+
+static QString humanSize(qint64 bytes) {
+    if (bytes < 1024) return QString::number(bytes) + " B";
+    if (bytes < 1024 * 1024) return QString::number((double)bytes / 1024, 'f', 1) + " KB";
+    return QString::number((double)bytes / (1024 * 1024), 'f', 1) + " MB";
 }
 
 // ---------- 提权 ----------
@@ -161,7 +184,7 @@ class MainWindow : public QWidget {
 public:
     MainWindow() {
         setWindowTitle("Message Board Console");
-        setFixedSize(520, 600);
+        setFixedSize(520, 620);
 
         auto* title = new QLabel("Message Board Console", this);
         title->setObjectName("titleLabel");
@@ -231,6 +254,13 @@ public:
         portRow->addWidget(setPortBtn);
         portRow->addStretch();
 
+        // 进度条
+        progressBar = new QProgressBar(this);
+        progressBar->setRange(0, 100);
+        progressBar->setValue(0);
+        progressBar->setTextVisible(false);
+        progressBar->setFixedHeight(10);
+
         // 提示
         hint = new QLabel("", this);
         hint->setStyleSheet("color:#52443C; background:transparent;");
@@ -247,6 +277,7 @@ public:
         layout->addSpacing(4);
         layout->addLayout(btnRow);
         layout->addLayout(portRow);
+        layout->addWidget(progressBar);
         layout->addWidget(hint);
         layout->addStretch();
 
@@ -344,53 +375,111 @@ private slots:
         refreshStatus();
     }
 
-    // 下载并安装 Node.js（便携版，解压到项目根目录 node/ 目录）
-    void installNode() {
-        hint->setText("正在下载 Node.js...");
-        QString zip = g_root + "/node.zip";
-        if (!downloadFile(NODE_URL, zip)) {
-            hint->setText("下载 Node.js 失败，请检查网络");
-            return;
+    // 开始异步下载（带进度）
+    void startDownload(const QString& url, const QString& dest, const QString& stage) {
+        dlDest = dest;
+        dlStage = stage;
+        dlTotal = httpSize(url);
+        progressBar->setRange(0, 100);
+        progressBar->setValue(0);
+        hint->setText(stage == "node" ? "正在下载 Node.js..." : "正在下载 Tailscale...");
+
+        if (dlProc) { dlProc->deleteLater(); dlProc = nullptr; }
+        dlProc = new QProcess(this);
+        connect(dlProc, &QProcess::finished, this, &MainWindow::onDlFinished);
+        dlProc->start("curl.exe", { "-L", "-o", dest, url });
+
+        if (!dlTimer) {
+            dlTimer = new QTimer(this);
+            connect(dlTimer, &QTimer::timeout, this, &MainWindow::onDlTick);
         }
-        hint->setText("正在解压 Node.js...");
-        QProcess p;
-        p.start("tar.exe", { "-xf", zip, "-C", g_root });
-        p.waitForFinished(-1);
-        QFile::remove(zip);
-        QDir old(g_root + "/node");
-        if (old.exists()) old.removeRecursively();
-        if (QDir().rename(g_root + "/node-v24.20.0-win-x64", g_root + "/node")) {
-            hint->setText("Node.js 安装完成");
-        } else {
-            hint->setText("Node.js 解压完成，但目录重命名失败");
-        }
-        refreshStatus();
+        dlTimer->start(200);
     }
 
-    // 下载并安装 Tailscale（官方安装器，需 UAC 提权）
-    void installTailscale() {
-        hint->setText("正在下载 Tailscale...");
-        QString exe = g_root + "/tailscale-setup.exe";
-        if (!downloadFile(TAILSCALE_URL, exe)) {
-            hint->setText("下载 Tailscale 失败，请检查网络");
+    // 下载进度刷新（按已下载字节 / 总字节）
+    void onDlTick() {
+        qint64 done = QFile(dlDest).size();
+        QString name = dlStage == "node" ? "Node.js" : "Tailscale";
+        if (dlTotal > 0) {
+            int pct = (int)(done * 100 / dlTotal);
+            if (pct > 100) pct = 100;
+            progressBar->setValue(pct);
+            hint->setText(QString("正在下载 %1：%2 / %3 (%4%)")
+                              .arg(name).arg(humanSize(done)).arg(humanSize(dlTotal)).arg(pct));
+        } else {
+            hint->setText(QString("正在下载 %1：%2").arg(name).arg(humanSize(done)));
+        }
+    }
+
+    // 下载完成后的分支处理
+    void onDlFinished(int code, QProcess::ExitStatus) {
+        dlTimer->stop();
+        if (dlProc) { dlProc->deleteLater(); dlProc = nullptr; }
+        if (code != 0 || !QFile::exists(dlDest)) {
+            progressBar->setRange(0, 100);
+            progressBar->setValue(0);
+            hint->setText("下载失败，请检查网络后重试");
+            refreshStatus();
             return;
         }
+        if (dlStage == "node") extractNode();
+        else if (dlStage == "tailscale") runTailscaleInstaller();
+    }
+
+    // 解压 Node.js 便携版（非静默，显示解压提示）
+    void extractNode() {
+        progressBar->setRange(0, 0);  // busy 模式
+        hint->setText("正在解压 Node.js...");
+        auto* p = new QProcess(this);
+        connect(p, &QProcess::finished, this, [this, p](int code, QProcess::ExitStatus st) {
+            p->deleteLater();
+            QFile::remove(dlDest);
+            QDir old(g_root + "/node");
+            if (old.exists()) old.removeRecursively();
+            bool ok = QDir().rename(g_root + "/node-v24.20.0-win-x64", g_root + "/node");
+            progressBar->setRange(0, 100);
+            progressBar->setValue(0);
+            hint->setText(ok ? "Node.js 安装完成" : "Node.js 解压完成，但目录重命名失败");
+            refreshStatus();
+            continueInstall();
+        });
+        p->start("tar.exe", { "-xf", dlDest, "-C", g_root });
+    }
+
+    // 运行 Tailscale 官方安装器（非静默，需 UAC 确认）
+    void runTailscaleInstaller() {
+        progressBar->setRange(0, 100);
+        progressBar->setValue(100);
         hint->setText("正在启动 Tailscale 安装程序（请确认 UAC）...");
         ShellExecuteW(nullptr, L"runas",
-                      reinterpret_cast<const wchar_t*>(exe.utf16()),
+                      reinterpret_cast<const wchar_t*>(dlDest.utf16()),
                       nullptr, nullptr, SW_SHOWNORMAL);
         hint->setText("Tailscale 安装程序已启动，完成后请登录");
         refreshStatus();
     }
 
-    // 一键安装缺失的依赖
-    void installEnv() {
-        if (!nodeExists()) installNode();
-        if (!tailscaleExists()) installTailscale();
-        if (nodeExists() && tailscaleExists()) {
+    // 继续安装下一个缺失的依赖
+    void continueInstall() {
+        if (!tailscaleExists()) {
+            startDownload(TAILSCALE_URL, g_root + "/tailscale-setup.exe", "tailscale");
+        } else {
+            progressBar->setRange(0, 100);
+            progressBar->setValue(100);
             hint->setText("运行环境已就绪");
         }
-        refreshStatus();
+    }
+
+    // 一键安装缺失的依赖（非静默，带进度）
+    void installEnv() {
+        if (dlProc && dlProc->state() != QProcess::NotRunning) {
+            hint->setText("正在安装中，请稍候...");
+            return;
+        }
+        if (!nodeExists()) { startDownload(NODE_URL, g_root + "/node.zip", "node"); return; }
+        if (!tailscaleExists()) { startDownload(TAILSCALE_URL, g_root + "/tailscale-setup.exe", "tailscale"); return; }
+        progressBar->setRange(0, 100);
+        progressBar->setValue(100);
+        hint->setText("运行环境已就绪");
     }
 
     void refreshStatus() {
@@ -429,6 +518,12 @@ private:
     QPushButton* setPortBtn;
     QPushButton* installBtn;
     QLineEdit* portEdit;
+    QProgressBar* progressBar;
+    QProcess* dlProc = nullptr;
+    qint64 dlTotal = -1;
+    QString dlDest;
+    QString dlStage;
+    QTimer* dlTimer = nullptr;
 };
 
 int main(int argc, char* argv[]) {
