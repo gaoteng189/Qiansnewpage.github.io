@@ -93,6 +93,7 @@ static QString g_root;
 static int g_port = 50304;
 static QProcess* g_node = nullptr;
 static QString g_funnelUrl;
+static const char* TAILSCALE_EXE = "C:/Program Files/Tailscale/tailscale.exe";
 
 // ---------- 文件读写（UTF-8） ----------
 static QString readFile(const QString& path) {
@@ -236,7 +237,7 @@ private slots:
     void startFunnel() {
         auto* p = new QProcess(this);
         connect(p, &QProcess::finished, p, &QObject::deleteLater);
-        p->start("tailscale", { "funnel", "--bg", QString::number(g_port) });
+        p->start(TAILSCALE_EXE, { "funnel", "--bg", QString::number(g_port) });
         QTimer::singleShot(2000, this, [this]() { queryFunnelUrl(); });
     }
 
@@ -255,14 +256,14 @@ private slots:
             p->deleteLater();
             refreshStatus();
         });
-        p->start("tailscale", { "funnel", "status" });
+        p->start(TAILSCALE_EXE, { "funnel", "status" });
     }
 
     // 关闭 Funnel
     void stopFunnel() {
         auto* p = new QProcess(this);
         connect(p, &QProcess::finished, p, &QObject::deleteLater);
-        p->start("tailscale", { "funnel", "reset" });
+        p->start(TAILSCALE_EXE, { "funnel", "reset" });
     }
 
     void onStart() {
