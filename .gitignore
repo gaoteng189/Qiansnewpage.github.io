@@ -31,6 +31,9 @@ Makefile
 Makefile.Release
 Makefile.Debug
 
+# 根目录运行副本（编译后复制，方便双击运行，勿提交）
+/start-server.exe
+
 # Tailscale 证书（含私钥，勿提交）
 *.crt
 *.key
