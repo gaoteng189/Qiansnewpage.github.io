@@ -93,7 +93,7 @@ static QString g_root;
 static int g_port = 50304;
 static QProcess* g_node = nullptr;
 static QString g_funnelUrl;
-static const char* TAILSCALE_EXE = "C:/Program Files/Tailscale/tailscale.exe";
+static const char* TAILSCALE_EXE = "C:\\Program Files\\Tailscale\\tailscale.exe";
 
 // ---------- 文件读写（UTF-8） ----------
 static QString readFile(const QString& path) {
@@ -246,9 +246,15 @@ private slots:
     void queryFunnelUrl() {
         auto* p = new QProcess(this);
         p->setProcessChannelMode(QProcess::MergedChannels);
-        connect(p, &QProcess::finished, this, [this, p](int, QProcess::ExitStatus) {
+        connect(p, &QProcess::finished, this, [this, p](int code, QProcess::ExitStatus st) {
             QString out = QString::fromUtf8(p->readAllStandardOutput());
-            QRegularExpression re("https://[a-z0-9-]+\\.ts\\.net");
+            QString err = QString::fromUtf8(p->readAllStandardError());
+            QFile log(g_root + "/funnel-debug.log");
+            if (log.open(QIODevice::WriteOnly | QIODevice::Append)) {
+                log.write(("exit=" + QString::number(code) + " st=" + QString::number(st) + "\nOUT[" + out + "]\nERR[" + err + "]\n---\n").toUtf8());
+                log.close();
+            }
+            QRegularExpression re("https://[a-z0-9.-]+\\.ts\\.net");
             auto it = re.globalMatch(out);
             if (it.hasNext()) {
                 g_funnelUrl = it.next().captured(0);

@@ -26,3 +26,6 @@ Makefile.Debug
 # Tailscale 证书（含私钥，勿提交）
 *.crt
 *.key
+
+# 调试日志
+funnel-debug.log
