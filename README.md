@@ -18,9 +18,8 @@
 ├── message/            # 留言板页面
 ├── server.js           # 留言板后端（零依赖 Node.js）
 ├── start-server.cpp    # 启动程序源码（Qt6 GUI）
-├── start-server.ps1    # PowerShell 版启动脚本
-├── start-server.bat    # 双击启动入口
-└── bin/                # 编译好的 start-server.exe 及运行时依赖
+├── stub.cpp            # 单 exe 启动器（Win32，内嵌运行时依赖）
+└── bin/                # 编译好的 start-server.exe（单文件）
 ```
 
 ## 部署
