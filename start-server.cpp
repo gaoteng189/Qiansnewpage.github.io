@@ -235,6 +235,7 @@ public:
 private slots:
     // 启动 Tailscale Funnel（后台模式，公网地址固定为 https://xxx.ts.net）
     void startFunnel() {
+        funnelRetry = 0;
         auto* p = new QProcess(this);
         connect(p, &QProcess::finished, p, &QObject::deleteLater);
         p->start(TAILSCALE_EXE, { "funnel", "--bg", QString::number(g_port) });
@@ -252,6 +253,11 @@ private slots:
             if (it.hasNext()) {
                 g_funnelUrl = it.next().captured(0);
                 hint->setText("Funnel ready: " + g_funnelUrl);
+            } else if (funnelRetry < 5) {
+                funnelRetry++;
+                QTimer::singleShot(2000, this, [this]() { queryFunnelUrl(); });
+            } else {
+                hint->setText("Funnel URL not detected. Check Tailscale.");
             }
             p->deleteLater();
             refreshStatus();
@@ -323,6 +329,7 @@ private:
         g_funnelUrl.clear();
     }
 
+    int funnelRetry = 0;
     QLabel* portValue;
     QLabel* backendValue;
     QLabel* boardValue;
