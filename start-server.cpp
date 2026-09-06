@@ -248,9 +248,9 @@ private slots:
         connect(p, &QProcess::finished, this, [this, p](int, QProcess::ExitStatus) {
             QString out = QString::fromUtf8(p->readAllStandardOutput());
             QRegularExpression re("https://[a-z0-9-]+\\.ts\\.net");
-            auto m = re.match(out);
-            if (m.hasMatch()) {
-                g_funnelUrl = m.captured(0);
+            auto it = re.globalMatch(out);
+            if (it.hasNext()) {
+                g_funnelUrl = it.next().captured(0);
                 hint->setText("Funnel ready: " + g_funnelUrl);
             }
             p->deleteLater();
