@@ -219,12 +219,12 @@ static bool isElevated() {
 class MainWindow : public QWidget {
 public:
     MainWindow() {
-        setWindowTitle("Message Board Console");
+        setWindowTitle("留言板控制台");
         setFixedSize(520, 660);
 
-        auto* title = new QLabel("Message Board Console", this);
+        auto* title = new QLabel("留言板控制台", this);
         title->setObjectName("titleLabel");
-        auto* subtitle = new QLabel("Message board backend + Tailscale Funnel", this);
+        auto* subtitle = new QLabel("留言板后端 + Tailscale Funnel", this);
         subtitle->setObjectName("subtitleLabel");
 
         // 状态卡片
@@ -236,7 +236,7 @@ public:
 
         portValue = new QLabel(this);
         portValue->setObjectName("statusValue");
-        backendValue = new QLabel("Stopped", this);
+        backendValue = new QLabel("未运行", this);
         backendValue->setObjectName("statusValue");
         boardValue = new QLabel("—", this);
         boardValue->setObjectName("urlValue");
@@ -255,15 +255,15 @@ public:
             row->addWidget(value, 1);
             cardLayout->addLayout(row);
         };
-        addRow("Port", portValue);
-        addRow("Backend (node)", backendValue);
-        addRow("Funnel URL", boardValue);
+        addRow("端口", portValue);
+        addRow("后端 (Node)", backendValue);
+        addRow("公网地址", boardValue);
         addRow("Node.js", nodeValue);
         addRow("Tailscale", tailscaleValue);
 
         // 按钮行 1（服务控制）
-        startBtn = new QPushButton("Start", this);
-        stopBtn = new QPushButton("Stop", this);
+        startBtn = new QPushButton("启动", this);
+        stopBtn = new QPushButton("停止", this);
         stopBtn->setObjectName("stopBtn");
         auto* btnRow1 = new QHBoxLayout();
         btnRow1->addStretch();
@@ -283,13 +283,13 @@ public:
 
         // 端口行
         auto* portRow = new QHBoxLayout();
-        auto* portLabel = new QLabel("Port:", this);
+        auto* portLabel = new QLabel("端口:", this);
         portLabel->setStyleSheet("color:#52443C; background:transparent;");
         portEdit = new QLineEdit(this);
         portEdit->setText(QString::number(g_port));
         portEdit->setFixedWidth(100);
         portEdit->setAlignment(Qt::AlignCenter);
-        setPortBtn = new QPushButton("Apply", this);
+        setPortBtn = new QPushButton("应用", this);
         setPortBtn->setObjectName("setPortBtn");
         portRow->addStretch();
         portRow->addWidget(portLabel);
@@ -364,12 +364,12 @@ private slots:
             auto it = re.globalMatch(out);
             if (it.hasNext()) {
                 g_funnelUrl = it.next().captured(0);
-                hint->setText("Funnel ready: " + g_funnelUrl);
+                hint->setText("Funnel 就绪：" + g_funnelUrl);
             } else if (funnelRetry < 5) {
                 funnelRetry++;
                 QTimer::singleShot(2000, this, [this]() { queryFunnelUrl(); });
             } else {
-                hint->setText("Funnel URL not detected. Check Tailscale.");
+                hint->setText("未检测到 Funnel 地址，请检查 Tailscale。");
             }
             p->deleteLater();
             refreshStatus();
@@ -386,10 +386,10 @@ private slots:
 
     void onStart() {
         if (isRunning(g_node)) {
-            hint->setText("Services are already running.");
+            hint->setText("服务已在运行。");
             return;
         }
-        hint->setText("Starting backend...");
+        hint->setText("正在启动后端...");
 
         g_node = new QProcess(this);
         g_node->setWorkingDirectory(g_root);
@@ -397,12 +397,12 @@ private slots:
         g_node->start(nodeExe, { "server.js", QString::number(g_port) });
 
         startFunnel();
-        hint->setText("Backend started. Starting Tailscale Funnel...");
+        hint->setText("后端已启动，正在启动 Tailscale Funnel...");
     }
 
     void onStop() {
         stopServices();
-        hint->setText("Backend stopped.");
+        hint->setText("后端已停止。");
         refreshStatus();
     }
 
@@ -413,9 +413,9 @@ private slots:
             g_port = p;
             savePort(p);
             portEdit->setText(QString::number(p));
-            hint->setText("Port set to " + QString::number(p));
+            hint->setText("端口已设置为 " + QString::number(p));
         } else {
-            hint->setText("Invalid port (1-65535).");
+            hint->setText("无效端口（1-65535）。");
         }
         refreshStatus();
     }
@@ -572,10 +572,10 @@ private slots:
 
     void refreshStatus() {
         portValue->setText(QString::number(g_port));
-        backendValue->setText(isRunning(g_node) ? "Running" : "Stopped");
+        backendValue->setText(isRunning(g_node) ? "运行中" : "未运行");
         boardValue->setText(g_funnelUrl.isEmpty() ? "—" : g_funnelUrl + "/message/");
-        nodeValue->setText(nodeExists() ? "Installed" : "Missing");
-        tailscaleValue->setText(tailscaleExists() ? "Installed" : "Missing");
+        nodeValue->setText(nodeExists() ? "已安装" : "未安装");
+        tailscaleValue->setText(tailscaleExists() ? "已安装" : "未安装");
     }
 
 private:
