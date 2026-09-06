@@ -56,8 +56,9 @@ QPushButton {
     background-color: #8D6E63;
     color: #FFFFFF;
     border: none;
-    border-radius: 20px;
-    padding: 10px 28px;
+    border-radius: 999px;
+    min-height: 36px;
+    padding: 8px 28px;
     font-weight: bold;
     font-size: 14px;
 }
@@ -349,14 +350,21 @@ private:
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setStyleSheet(M3_QSS);
-    QString appDir = QCoreApplication::applicationDirPath();
-    // 若 exe 位于 bin/ 等子目录，则根目录指向 server.js 所在的上级目录
-    if (QFile::exists(appDir + "/server.js")) {
-        g_root = appDir;
+
+    // 单 exe 模式下，stub 通过环境变量传递项目根目录
+    QByteArray envRoot = qgetenv("START_SERVER_ROOT");
+    if (!envRoot.isEmpty()) {
+        g_root = QString::fromLocal8Bit(envRoot);
     } else {
-        QDir dir(appDir);
-        dir.cdUp();
-        g_root = dir.absolutePath();
+        QString appDir = QCoreApplication::applicationDirPath();
+        // 若 exe 位于 bin/ 等子目录，则根目录指向 server.js 所在的上级目录
+        if (QFile::exists(appDir + "/server.js")) {
+            g_root = appDir;
+        } else {
+            QDir dir(appDir);
+            dir.cdUp();
+            g_root = dir.absolutePath();
+        }
     }
     loadPort();
 

@@ -18,6 +18,14 @@ bin/networkinformation/
 
 # 编译中间产物
 start-server-res.o
+start-server-core.exe
+bin/start-server-core.exe
+stub.o
+stub-icon.o
+stub-res.o
+stub-resources.rc
+payload.bin
+payload.o
 .qmake.stash
 Makefile
 Makefile.Release
