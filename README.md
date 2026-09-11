@@ -1,12 +1,13 @@
 # Qiansnewpage
 
-个人站点：在线工具箱 + 小游戏 + 留言板，统一采用 Material Design 3（M3）棕色扁平设计语言。
+个人站点：在线工具箱 + 小游戏 + 小说阅读 + 留言板，统一采用 Material Design 3（M3）棕色扁平设计语言。
 
 ## 功能
 
 - **在线工具箱**（`index.html`）：函数图像绘制、Base64 编解码、SHA-256 哈希、随机密码生成器，全部纯前端、无需联网、数据不离开浏览器。
 - **2D 跑酷小游戏**（`game/`）：Canvas 自绘图形的小游戏。
 - **视频播放测试**（`video/`）：视频播放器页面。
+- **小说阅读器**（`novel/`）：导入本地 txt 小说，自动识别「第 x 章」等标题生成目录；支持字号/行距调节、默认/护眼/夜间三种背景、章节键盘切换与阅读进度记忆，正文只保存在浏览器本地。
 - **留言板**（`message/`）：HTTP 轮询留言板，数据保存在运行服务器的主机上，可公网访问。
 
 ## 目录结构
@@ -15,6 +16,7 @@
 ├── index.html          # 首页（在线工具箱）
 ├── game/               # 2D 跑酷小游戏
 ├── video/              # 视频播放测试
+├── novel/              # 小说阅读器
 ├── message/            # 留言板页面
 ├── server.js           # 留言板后端（零依赖 Node.js）
 ├── start-server.cpp    # 启动程序源码（Qt6 GUI）
@@ -55,8 +57,8 @@ tailscale funnel --bg 50304
 
 直接运行 `bin/start-server.exe`：
 
-- **Start**：启动 `server.js` 后端 + 启用 Tailscale Funnel，并显示公网地址
-- **Stop**：停止后端并关闭 Funnel
+- **启动**：启动 `server.js` 后端 + 启用 Tailscale Funnel，并显示公网地址
+- **停止**：停止后端并关闭 Funnel
 - 端口可在界面修改，保存到 `.server-port`
 
 ## 技术栈
