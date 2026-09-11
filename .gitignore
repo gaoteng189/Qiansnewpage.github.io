@@ -1,6 +1,9 @@
 # 留言板运行时数据（由 server.js 动态生成）
 messages.json
 
+# 可执行文件（体积大，CF Pages 单文件限制 25MB，不提交）
+*.exe
+
 # Node.js
 node_modules/
 
