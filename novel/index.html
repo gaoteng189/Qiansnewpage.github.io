@@ -261,6 +261,68 @@
 
         .hint.err { color: var(--md-error); }
 
+        /* ---------- 服务器书库 ---------- */
+        .card + .card { margin-top: 18px; }
+
+        .shelf-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .shelf-head h2 { margin-bottom: 0; }
+
+        .shelf {
+            display: grid;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .shelf-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--md-surface-container);
+            border-radius: 14px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color .12s, color .12s;
+        }
+
+        .shelf-item:hover {
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+        }
+
+        .shelf-item .nm {
+            flex: 1;
+            min-width: 0;
+            font-size: 14px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .shelf-item .sz {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            flex-shrink: 0;
+        }
+
+        .shelf-item:hover .sz { color: inherit; opacity: .75; }
+        .shelf-item.loading { opacity: .55; pointer-events: none; }
+
+        .shelf-empty {
+            font-size: 13.5px;
+            color: var(--md-on-surface-variant);
+            padding: 6px 2px;
+            line-height: 1.7;
+        }
+
         /* ---------- 阅读区 ---------- */
         .layout {
             display: grid;
@@ -495,6 +557,21 @@
             <p class="hint" id="importHint">支持 UTF-8 / GBK 编码，读取后会自动记忆阅读进度</p>
         </section>
 
+        <!-- 服务器书库 -->
+        <section class="card" id="shelfPanel">
+            <div class="shelf-head">
+                <h2>服务器书库</h2>
+                <button class="chip" id="shelfRefresh" title="重新读取书库">刷新</button>
+            </div>
+            <p class="desc">
+                读取服务器主机 <b>novels/</b> 目录里的小说（经 Tailscale Funnel 下发），点击书名即可开始阅读。
+            </p>
+            <div class="shelf" id="shelf">
+                <p class="shelf-empty">正在读取…</p>
+            </div>
+            <p class="hint" id="shelfHint"></p>
+        </section>
+
         <!-- 阅读面板 -->
         <section id="readerPanel" hidden>
             <div class="layout">
@@ -539,6 +616,11 @@
         var fileInput = document.getElementById('fileInput');
         var changeBtn = document.getElementById('changeBtn');
         var bookNameEl = document.getElementById('bookName');
+
+        var shelfPanel = document.getElementById('shelfPanel');
+        var shelf = document.getElementById('shelf');
+        var shelfHint = document.getElementById('shelfHint');
+        var shelfRefresh = document.getElementById('shelfRefresh');
 
         var toc = document.getElementById('toc');
         var tocList = document.getElementById('tocList');
@@ -892,6 +974,7 @@
             state.name = name;
             bookNameEl.textContent = name;
             importPanel.hidden = true;
+            shelfPanel.hidden = true;
             readerPanel.hidden = false;
             changeBtn.hidden = false;
         }
@@ -969,6 +1052,107 @@
             handleFile(f);
         });
 
+        // ---------- 服务器书库（经 Tailscale Funnel 读取后端 novels/ 目录） ----------
+        var TUNNEL_BASE = 'https://desktop-b2crhua.tailc0e496.ts.net';
+
+        // 同源（本地开发或 Funnel 域名）直接用相对路径，其余走 Funnel 公网地址
+        function apiBase() {
+            var h = location.hostname;
+            if (!h || /(^|\.)ts\.net$/i.test(h) || h === 'localhost' || h === '127.0.0.1') return '';
+            return TUNNEL_BASE;
+        }
+
+        function fmtSize(n) {
+            if (typeof n !== 'number' || n <= 0) return '';
+            if (n < 1024) return n + ' B';
+            if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+            return (n / 1048576).toFixed(1) + ' MB';
+        }
+
+        function shelfMsg(text, isErr) {
+            shelfHint.textContent = text || '';
+            shelfHint.classList.toggle('err', !!isErr);
+        }
+
+        function shelfNote(text) {
+            var p = document.createElement('p');
+            p.className = 'shelf-empty';
+            p.textContent = text;
+            return p;
+        }
+
+        function renderShelf(items) {
+            var frag = document.createDocumentFragment();
+            if (!items.length) {
+                frag.appendChild(shelfNote('书库是空的：把 .txt 小说放进服务器的 novels/ 目录，再点“刷新”。'));
+            } else {
+                items.forEach(function (it) {
+                    var row = document.createElement('div');
+                    row.className = 'shelf-item';
+
+                    var nm = document.createElement('span');
+                    nm.className = 'nm';
+                    nm.textContent = String(it.name).replace(/\.txt$/i, '');
+                    nm.title = it.name;
+
+                    var sz = document.createElement('span');
+                    sz.className = 'sz';
+                    sz.textContent = fmtSize(it.size);
+
+                    row.appendChild(nm);
+                    row.appendChild(sz);
+                    row.addEventListener('click', function () { loadFromServer(it.name, row); });
+                    frag.appendChild(row);
+                });
+            }
+            shelf.replaceChildren(frag);
+        }
+
+        function loadShelf() {
+            shelfMsg('');
+            shelf.replaceChildren(shelfNote('正在读取…'));
+            fetch(apiBase() + '/api/novels', { cache: 'no-store' })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function (items) {
+                    items = Array.isArray(items) ? items : [];
+                    renderShelf(items);
+                    shelfMsg(items.length ? '共 ' + items.length + ' 本' : '');
+                })
+                .catch(function () {
+                    shelf.replaceChildren(shelfNote('读取失败'));
+                    shelfMsg('连不上后端：请先运行 start-server.exe 并启用 Funnel。', true);
+                });
+        }
+
+        function loadFromServer(name, row) {
+            if (row) row.classList.add('loading');
+            shelfMsg('正在加载《' + String(name).replace(/\.txt$/i, '') + '》…');
+            fetch(apiBase() + '/api/novels/' + encodeURIComponent(name), { cache: 'no-store' })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.arrayBuffer();
+                })
+                .then(function (buf) {
+                    var text = decodeBuffer(buf);
+                    if (!text.trim()) throw new Error('empty');
+                    saveBook(name, text);
+                    writeJSON(PROGRESS_KEY, { chapter: 0, ratio: 0 });
+                    openBook(name, text, null);
+                    shelfMsg('');
+                })
+                .catch(function () {
+                    shelfMsg('加载失败：' + name, true);
+                })
+                .then(function () {
+                    if (row) row.classList.remove('loading');
+                });
+        }
+
+        shelfRefresh.addEventListener('click', loadShelf);
+
         changeBtn.addEventListener('click', function () {
             if (!window.confirm('确定要清空当前小说并重新导入吗？（会清除已保存的进度）')) return;
             clearBook();
@@ -979,8 +1163,10 @@
             bookNameEl.textContent = '未导入小说';
             readerPanel.hidden = true;
             importPanel.hidden = false;
+            shelfPanel.hidden = false;
             changeBtn.hidden = true;
             setImportHint('支持 UTF-8 / GBK 编码，读取后会自动记忆阅读进度');
+            loadShelf();
             window.scrollTo(0, 0);
         });
 
@@ -993,6 +1179,7 @@
                 if (s.theme) state.theme = s.theme;
             }
             applySettings();
+            loadShelf();
 
             loadBook().then(function (rec) {
                 if (rec && rec.text) {

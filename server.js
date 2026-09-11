@@ -11,8 +11,11 @@
  * HTTP 接口：
  *   GET  /api/messages    —— 读取全部留言
  *   POST /api/messages    —— 发布留言（JSON：{ name, message }）
+ *   GET  /api/novels      —— 列出 novels/ 目录下的小说（txt）
+ *   GET  /api/novels/<名> —— 下载小说原始字节（前端自行按 UTF-8 / GBK 解码）
  *
- * 留言数据保存在服务器所在主机的 messages.json 文件中。
+ * 留言数据保存在服务器所在主机的 messages.json 文件中；
+ * 小说文件放在服务器所在主机的 novels/ 目录中（.txt）。
  */
 'use strict';
 
@@ -24,6 +27,8 @@ const PORT = process.argv[2] || process.env.PORT || 50304;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'messages.json');
+const NOVEL_DIR = process.env.NOVEL_DIR || path.join(ROOT, 'novels');
+const TXT_EXT = /\.txt$/i;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -85,6 +90,40 @@ function readBody(req) {
     req.on('end', () => resolve(body));
     req.on('error', reject);
   });
+}
+
+// ---------- 小说书库 ----------
+// 列出 novels/ 目录下的 txt 小说
+function listNovels() {
+  let names;
+  try {
+    names = fs.readdirSync(NOVEL_DIR);
+  } catch (e) {
+    return [];
+  }
+  const list = [];
+  for (const name of names) {
+    if (!TXT_EXT.test(name)) continue;
+    try {
+      const st = fs.statSync(path.join(NOVEL_DIR, name));
+      if (!st.isFile()) continue;
+      list.push({ name, size: st.size, mtime: Math.round(st.mtimeMs) });
+    } catch (e) {
+      // 单个文件读取失败不影响其它文件
+    }
+  }
+  list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+  return list;
+}
+
+// 把请求里的书名解析为 novels/ 目录下安全的文件路径（防目录穿越）
+function resolveNovel(name) {
+  const base = path.basename(String(name || '').trim());
+  if (!base || base === '.' || base === '..') return null;
+  if (!TXT_EXT.test(base)) return null;
+  const full = path.normalize(path.join(NOVEL_DIR, base));
+  if (!full.startsWith(NOVEL_DIR + path.sep)) return null;
+  return full;
 }
 
 function serveStatic(res, urlPath) {
@@ -190,6 +229,51 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     send(res, 405, { error: '不支持的请求方法' });
+    return;
+  }
+
+  // 小说书库：列表
+  if (pathname === '/api/novels') {
+    if (req.method === 'GET') {
+      send(res, 200, listNovels());
+      return;
+    }
+    send(res, 405, { error: '不支持的请求方法' });
+    return;
+  }
+
+  // 小说书库：下载原始字节（交给前端按编码解码）
+  if (pathname.startsWith('/api/novels/')) {
+    if (req.method !== 'GET') {
+      send(res, 405, { error: '不支持的请求方法' });
+      return;
+    }
+    let rawName;
+    try {
+      rawName = decodeURIComponent(pathname.slice('/api/novels/'.length));
+    } catch (e) {
+      send(res, 400, { error: '无效的文件名' });
+      return;
+    }
+    const filePath = resolveNovel(rawName);
+    if (!filePath) {
+      send(res, 400, { error: '无效的文件名' });
+      return;
+    }
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        send(res, 404, { error: '小说不存在' });
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': data.length,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache'
+      });
+      res.end(data);
+      console.log(`[小说] 下发 ${path.basename(filePath)}（${data.length} 字节）`);
+    });
     return;
   }
 
