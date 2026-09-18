@@ -167,12 +167,53 @@
             color: var(--md-on-primary-container);
         }
 
+        .level-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chip {
+            border: none;
+            background: var(--md-secondary-container);
+            color: var(--md-on-secondary-container);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            padding: 8px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background-color .15s, color .15s;
+        }
+
+        .chip:hover { opacity: .88; }
+
+        .chip.active {
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+        }
+
         .hint {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             color: var(--md-on-surface-variant);
             font-size: 13px;
             padding-top: 14px;
         }
+
+        .sound-btn {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 4px 9px;
+            border-radius: 999px;
+            transition: background-color .12s;
+        }
+
+        .sound-btn:hover { background: var(--md-secondary-container); }
 
         footer {
             text-align: center;
@@ -205,12 +246,20 @@
             <div class="overlay" id="overlay">
                 <h2 id="overlayTitle">2D 跑酷</h2>
                 <p class="desc" id="overlayDesc">空格 / 点击画面 / 触摸 跳跃<br>支持二段跳，避开障碍物，跑得越远越好</p>
+                <div class="level-row" id="levelRow">
+                    <button class="chip" data-level="easy">简单</button>
+                    <button class="chip active" data-level="normal">普通</button>
+                    <button class="chip" data-level="hard">困难</button>
+                </div>
                 <div class="final-score hidden" id="finalScore"></div>
                 <button class="btn" id="startBtn">开始游戏</button>
             </div>
         </div>
 
-        <p class="hint">空格 / 点击 / 触摸 跳跃</p>
+        <p class="hint">
+            <span>空格 / 点击 / 触摸 跳跃</span>
+            <button class="sound-btn" id="soundBtn" title="音效开关">🔊</button>
+        </p>
     </div>
 
     <footer>
@@ -272,6 +321,19 @@
         var speed = 0;
         var spawnTimer = 0;
         var lastTime = 0;
+        var lastMilestone = 0;
+
+        // ---------- 难度 ----------
+        var LEVELS = {
+            easy:   { label: '简单', speed: 280, maxSpeed: 520, accel: 0.35, gap: 1.55, minGap: 0.85 },
+            normal: { label: '普通', speed: 320, maxSpeed: 700, accel: 0.5,  gap: 1.35, minGap: 0.55 },
+            hard:   { label: '困难', speed: 385, maxSpeed: 920, accel: 0.72, gap: 1.05, minGap: 0.40 }
+        };
+        var level = 'normal';
+        try {
+            var savedLevel = localStorage.getItem('runner_level');
+            if (savedLevel && LEVELS[savedLevel]) level = savedLevel;
+        } catch (e) {}
 
         try {
             best = parseInt(localStorage.getItem('runner_best'), 10) || 0;
@@ -294,20 +356,86 @@
         var startBtn = document.getElementById('startBtn');
         var scoreEl = document.getElementById('score');
         var bestEl = document.getElementById('best');
+        var levelRow = document.getElementById('levelRow');
+        var soundBtn = document.getElementById('soundBtn');
 
-        function setOverlay(mode) {
+        // ---------- 音效（Web Audio 合成，无需外部资源） ----------
+        var audioCtx = null;
+        var soundOn = true;
+        try {
+            soundOn = localStorage.getItem('runner_sound') !== 'off';
+        } catch (e) {}
+
+        function updateSoundBtn() {
+            soundBtn.textContent = soundOn ? '🔊' : '🔇';
+            soundBtn.title = soundOn ? '音效已开启（点击关闭）' : '音效已关闭（点击开启）';
+        }
+        updateSoundBtn();
+
+        function beep(freq, dur, type, vol) {
+            if (!soundOn) return;
+            try {
+                if (!audioCtx) {
+                    var AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) return;
+                    audioCtx = new AC();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.type = type || 'sine';
+                osc.frequency.value = freq;
+                var t = audioCtx.currentTime;
+                gain.gain.setValueAtTime(vol == null ? 0.06 : vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(t);
+                osc.stop(t + dur);
+            } catch (e) {}
+        }
+
+        soundBtn.addEventListener('click', function () {
+            soundOn = !soundOn;
+            try { localStorage.setItem('runner_sound', soundOn ? 'on' : 'off'); } catch (e) {}
+            updateSoundBtn();
+            if (soundOn) beep(660, 0.1, 'sine');
+        });
+
+        // ---------- 难度切换 ----------
+        function syncLevelBtns() {
+            Array.prototype.forEach.call(levelRow.querySelectorAll('.chip'), function (b) {
+                b.classList.toggle('active', b.dataset.level === level);
+            });
+        }
+
+        levelRow.addEventListener('click', function (e) {
+            var btn = e.target.closest('button[data-level]');
+            if (!btn || state === 'playing') return;
+            level = btn.dataset.level;
+            try { localStorage.setItem('runner_level', level); } catch (e) {}
+            syncLevelBtns();
+            beep(520, 0.08, 'sine');
+        });
+
+        syncLevelBtns();
+
+        function setOverlay(mode, isRecord) {
             if (mode === 'ready') {
                 overlay.classList.remove('hidden');
                 overlayTitle.textContent = '2D 跑酷';
                 overlayDesc.textContent = '空格 / 点击画面 / 触摸 跳跃\n支持二段跳，避开障碍物，跑得越远越好';
+                levelRow.style.display = '';
                 finalScore.classList.add('hidden');
                 startBtn.textContent = '开始游戏';
             } else if (mode === 'over') {
                 overlay.classList.remove('hidden');
-                overlayTitle.textContent = '游戏结束';
-                overlayDesc.textContent = '跑得不错，再来一次？';
+                overlayTitle.textContent = isRecord ? '🎉 新纪录！' : '游戏结束';
+                overlayDesc.textContent = isRecord ? '打破了自己的最好成绩，厉害！' : '跑得不错，再来一次？';
+                levelRow.style.display = '';
                 finalScore.classList.remove('hidden');
-                finalScore.textContent = '本次得分：' + Math.floor(score) + '　最佳：' + best;
+                finalScore.textContent = '本次得分：' + Math.floor(score) + '　最佳：' + best +
+                    '　难度：' + LEVELS[level].label;
                 startBtn.textContent = '重新开始';
             } else {
                 overlay.classList.add('hidden');
@@ -317,24 +445,28 @@
         function startGame() {
             state = 'playing';
             score = 0;
-            speed = 320;
+            speed = LEVELS[level].speed;
             spawnTimer = 0.6;
+            lastMilestone = 0;
             obstacles.length = 0;
             player.y = GROUND_Y;
             player.vy = 0;
             player.jumpsLeft = JUMPS_MAX;
             setOverlay('playing');
+            beep(440, 0.12, 'triangle');
         }
 
         function gameOver() {
             state = 'over';
             var s = Math.floor(score);
-            if (s > best) {
+            var isRecord = s > best;
+            if (isRecord) {
                 best = s;
                 try { localStorage.setItem('runner_best', best); } catch (e) {}
                 bestEl.textContent = best;
             }
-            setOverlay('over');
+            beep(140, 0.4, 'sawtooth', 0.09);
+            setOverlay('over', isRecord);
         }
 
         function jump() {
@@ -342,6 +474,8 @@
             if (player.jumpsLeft > 0) {
                 player.vy = JUMP_V;
                 player.jumpsLeft--;
+                // 二段跳音调更高
+                beep(player.jumpsLeft === 0 ? 700 : 520, 0.1, 'triangle');
             }
         }
 
@@ -376,8 +510,16 @@
             if (state !== 'playing') return;
 
             score += speed * dt * 0.01;
-            speed = Math.min(700, 320 + score * 0.5);
+            var cfg = LEVELS[level];
+            speed = Math.min(cfg.maxSpeed, cfg.speed + score * cfg.accel);
             scoreEl.textContent = Math.floor(score);
+
+            // 每 100 分提示一次
+            var milestone = Math.floor(score / 100);
+            if (milestone > lastMilestone) {
+                lastMilestone = milestone;
+                beep(880, 0.14, 'sine', 0.05);
+            }
 
             // 玩家
             player.vy += GRAVITY * dt;
@@ -390,7 +532,7 @@
 
             // 障碍
             spawnTimer -= dt;
-            var interval = Math.max(0.55, 1.35 - speed * 0.0012);
+            var interval = Math.max(cfg.minGap, cfg.gap - speed * 0.0012);
             if (spawnTimer <= 0) {
                 spawnObstacle();
                 spawnTimer = interval * (0.7 + Math.random() * 0.6);

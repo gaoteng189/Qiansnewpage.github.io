@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>待办清单</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <style>
+        :root {
+            --md-primary: #8D6E63;
+            --md-on-primary: #FFFFFF;
+            --md-primary-container: #EFDBD1;
+            --md-on-primary-container: #3E2723;
+            --md-secondary-container: #E5D5CF;
+            --md-on-secondary-container: #3E2723;
+            --md-surface: #FDF8F5;
+            --md-surface-container: #F6ECE7;
+            --md-surface-container-high: #F0E3DC;
+            --md-on-surface: #1F1B16;
+            --md-on-surface-variant: #52443C;
+            --md-outline: #85736A;
+            --md-outline-variant: #D8CCC4;
+            --md-error: #BA1A1A;
+            --md-on-error: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Microsoft YaHei', '微软雅黑', system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+            min-height: 100vh;
+            padding: 24px 16px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app {
+            max-width: 720px;
+            width: 100%;
+            background: var(--md-surface-container);
+            border-radius: 28px;
+            padding: 24px 24px 26px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sub {
+            color: var(--md-on-surface-variant);
+            font-size: 14.5px;
+            border-bottom: 1px solid var(--md-outline-variant);
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--md-surface-container-high);
+            border-radius: 20px;
+            padding: 18px 20px;
+        }
+
+        .card + .card { margin-top: 16px; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--md-outline);
+            border-radius: 999px;
+            font-size: 15px;
+            font-family: inherit;
+            background: transparent;
+            color: var(--md-on-surface);
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        input[type="text"]:focus {
+            border: 2px solid var(--md-primary);
+            padding: 11px 15px;
+        }
+
+        .btn {
+            padding: 11px 24px;
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+            border: none;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity .15s, transform .1s;
+        }
+
+        .btn:hover { opacity: .92; }
+        .btn:active { transform: scale(.97); }
+
+        .add-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .chip {
+            border: none;
+            background: var(--md-secondary-container);
+            color: var(--md-on-secondary-container);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            padding: 8px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background-color .15s, color .15s, opacity .15s;
+            white-space: nowrap;
+        }
+
+        .chip:hover { opacity: .88; }
+
+        .chip.active {
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+        }
+
+        .stats {
+            font-size: 13px;
+            color: var(--md-on-surface-variant);
+            margin-bottom: 10px;
+        }
+
+        .todo-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--md-surface-container);
+            border-radius: 14px;
+            padding: 12px 14px;
+            transition: background-color .12s;
+        }
+
+        .item:hover { background: var(--md-primary-container); }
+
+        .check {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 2px solid var(--md-outline);
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: background-color .15s, border-color .15s;
+        }
+
+        .check:hover { border-color: var(--md-primary); }
+
+        .item.done .check {
+            background: var(--md-primary);
+            border-color: var(--md-primary);
+        }
+
+        .item.done .check::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .text {
+            flex: 1;
+            min-width: 0;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+            cursor: text;
+        }
+
+        .item.done .text {
+            text-decoration: line-through;
+            color: var(--md-on-surface-variant);
+            opacity: .75;
+        }
+
+        .item .edit-input {
+            flex: 1;
+            min-width: 0;
+            font-size: 15px;
+            font-family: inherit;
+            padding: 6px 10px;
+            border: 2px solid var(--md-primary);
+            border-radius: 10px;
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+            outline: none;
+        }
+
+        .item .time {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            flex-shrink: 0;
+        }
+
+        .item.done:hover { background: var(--md-surface-container); }
+
+        .del {
+            border: none;
+            background: transparent;
+            color: var(--md-on-surface-variant);
+            font-size: 18px;
+            line-height: 1;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color .12s, color .12s;
+        }
+
+        .del:hover {
+            background: var(--md-error);
+            color: var(--md-on-error);
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 14px;
+            padding: 26px 0;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translate(-50%, 20px);
+            background: var(--md-on-surface);
+            color: var(--md-surface);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 22px;
+            border-radius: 999px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s, transform .2s;
+            z-index: 60;
+        }
+
+        .toast.show { opacity: .95; transform: translate(-50%, 0); }
+
+        footer {
+            text-align: center;
+            color: var(--md-on-surface-variant);
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        footer a { color: var(--md-primary); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 560px) {
+            body { padding: 14px 10px 30px; }
+            .app { padding: 18px 16px 20px; border-radius: 22px; }
+            h1 { font-size: 22px; }
+            .add-row { flex-direction: column; }
+            .add-row .btn { width: 100%; }
+            .item .time { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>待办清单</h1>
+        <div class="sub">本地保存，刷新不丢失 · 双击文字可编辑</div>
+
+        <div class="card">
+            <form class="add-row" id="addForm">
+                <input type="text" id="newInput" maxlength="200" placeholder="添加一件要做的事…" autocomplete="off">
+                <button class="btn" type="submit">添加</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <div class="filters" id="filters">
+                    <button class="chip active" data-filter="all">全部</button>
+                    <button class="chip" data-filter="active">未完成</button>
+                    <button class="chip" data-filter="done">已完成</button>
+                </div>
+                <button class="chip" id="clearDone">清除已完成</button>
+            </div>
+            <div class="stats" id="stats"></div>
+            <ul class="todo-list" id="list"></ul>
+        </div>
+
+        <footer>
+            2026 Qianchenawa. Licensed under MIT. Open source on
+            <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var KEY = 'todo.items';
+
+        var addForm = document.getElementById('addForm');
+        var newInput = document.getElementById('newInput');
+        var filters = document.getElementById('filters');
+        var clearDone = document.getElementById('clearDone');
+        var statsEl = document.getElementById('stats');
+        var listEl = document.getElementById('list');
+        var toastEl = document.getElementById('toast');
+
+        var items = [];
+        var filter = 'all';
+
+        // ---------- 存储 ----------
+        function load() {
+            try {
+                var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+                items = Array.isArray(arr) ? arr.filter(function (x) {
+                    return x && typeof x.text === 'string';
+                }) : [];
+            } catch (e) { items = []; }
+        }
+
+        function save() {
+            try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {}
+        }
+
+        // ---------- 提示 ----------
+        function toast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(function () { toastEl.classList.remove('show'); }, 1800);
+        }
+
+        function fmtTime(ts) {
+            var d = new Date(ts);
+            if (isNaN(d.getTime())) return '';
+            function p(n) { return n < 10 ? '0' + n : n; }
+            return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        // ---------- 渲染 ----------
+        function visible() {
+            if (filter === 'active') return items.filter(function (i) { return !i.done; });
+            if (filter === 'done') return items.filter(function (i) { return i.done; });
+            return items.slice();
+        }
+
+        function render() {
+            var list = visible();
+
+            if (!list.length) {
+                listEl.replaceChildren();
+                var empty = document.createElement('li');
+                empty.className = 'empty';
+                empty.textContent = items.length
+                    ? (filter === 'active' ? '没有未完成的事项' : '还没有已完成的事项')
+                    : '还没有待办，添加一条试试';
+                listEl.appendChild(empty);
+            } else {
+                var frag = document.createDocumentFragment();
+                list.forEach(function (it) { frag.appendChild(makeItem(it)); });
+                listEl.replaceChildren(frag);
+            }
+
+            var left = items.filter(function (i) { return !i.done; }).length;
+            var done = items.length - left;
+            statsEl.textContent = items.length ? '未完成 ' + left + ' 项 · 已完成 ' + done + ' 项' : '';
+            clearDone.disabled = done === 0;
+            clearDone.style.opacity = done === 0 ? '.5' : '';
+        }
+
+        function makeItem(it) {
+            var li = document.createElement('li');
+            li.className = 'item' + (it.done ? ' done' : '');
+
+            var check = document.createElement('button');
+            check.type = 'button';
+            check.className = 'check';
+            check.title = it.done ? '标记为未完成' : '标记为已完成';
+            check.addEventListener('click', function () {
+                it.done = !it.done;
+                save();
+                render();
+            });
+
+            var text = document.createElement('span');
+            text.className = 'text';
+            text.textContent = it.text;
+            text.title = '双击编辑';
+            text.addEventListener('dblclick', function () { startEdit(li, it, text); });
+
+            var time = document.createElement('span');
+            time.className = 'time';
+            time.textContent = fmtTime(it.at);
+
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'del';
+            del.textContent = '×';
+            del.title = '删除';
+            del.addEventListener('click', function () {
+                items = items.filter(function (x) { return x.id !== it.id; });
+                save();
+                render();
+                toast('已删除');
+            });
+
+            li.appendChild(check);
+            li.appendChild(text);
+            li.appendChild(time);
+            li.appendChild(del);
+            return li;
+        }
+
+        function startEdit(li, it, textEl) {
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'edit-input';
+            input.value = it.text;
+            input.maxLength = 200;
+
+            li.replaceChild(input, textEl);
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+
+            var finished = false;
+
+            function commit(save_) {
+                if (finished) return;
+                finished = true;
+                var v = input.value.trim();
+                if (save_ && v) {
+                    it.text = v;
+                    save();
+                }
+                render();
+            }
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') commit(true);
+                else if (e.key === 'Escape') commit(false);
+            });
+            input.addEventListener('blur', function () { commit(true); });
+        }
+
+        // ---------- 添加 ----------
+        addForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var v = newInput.value.trim();
+            if (!v) return;
+            items.unshift({
+                id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+                text: v,
+                done: false,
+                at: Date.now()
+            });
+            newInput.value = '';
+            save();
+            if (filter === 'done') {
+                filter = 'all';
+                syncFilters();
+            }
+            render();
+        });
+
+        // ---------- 筛选 ----------
+        function syncFilters() {
+            Array.prototype.forEach.call(filters.querySelectorAll('.chip'), function (b) {
+                b.classList.toggle('active', b.dataset.filter === filter);
+            });
+        }
+
+        filters.addEventListener('click', function (e) {
+            var btn = e.target.closest('button[data-filter]');
+            if (!btn) return;
+            filter = btn.dataset.filter;
+            syncFilters();
+            render();
+        });
+
+        // ---------- 清除已完成 ----------
+        clearDone.addEventListener('click', function () {
+            var done = items.filter(function (i) { return i.done; }).length;
+            if (!done) return;
+            if (!window.confirm('确定清除 ' + done + ' 项已完成的待办吗？')) return;
+            items = items.filter(function (i) { return !i.done; });
+            save();
+            render();
+            toast('已清除 ' + done + ' 项');
+        });
+
+        // ---------- 启动 ----------
+        load();
+        syncFilters();
+        render();
+    })();
+    </script>
+</body>
+</html>

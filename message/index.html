@@ -170,6 +170,116 @@
             white-space: pre-wrap;
         }
 
+        .msg-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .msg-actions button {
+            background: transparent;
+            border: none;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--md-on-surface-variant);
+            cursor: pointer;
+            transition: background-color .12s, color .12s;
+        }
+
+        .msg-actions button:hover {
+            background: var(--md-secondary-container);
+            color: var(--md-on-secondary-container);
+        }
+
+        .msg-actions button.danger:hover {
+            background: var(--md-error);
+            color: var(--md-on-error);
+        }
+
+        .msg.mine .msg-name { color: var(--md-primary); }
+
+        .replies {
+            margin-top: 12px;
+            padding-left: 14px;
+            border-left: 3px solid var(--md-outline-variant);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg.reply {
+            background: var(--md-surface-container);
+            padding: 10px 14px;
+            border-radius: 14px;
+        }
+
+        .msg.reply .msg-body { font-size: 14px; }
+
+        .emoji-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .emoji-row button {
+            background: transparent;
+            border: 1px solid var(--md-outline-variant);
+            border-radius: 10px;
+            font-size: 17px;
+            line-height: 1;
+            padding: 6px 9px;
+            cursor: pointer;
+            transition: background-color .12s;
+        }
+
+        .emoji-row button:hover { background: var(--md-primary-container); }
+
+        .reply-hint {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+            border-radius: 12px;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .reply-hint.show { display: flex; }
+
+        .reply-hint .rh-text {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .reply-hint button {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+        }
+
+        .counts {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--md-on-surface-variant);
+            margin-bottom: 14px;
+        }
+
         .empty {
             text-align: center;
             color: var(--md-on-surface-variant);
@@ -195,6 +305,10 @@
         <div class="card">
             <h1>留言板</h1>
             <form id="form">
+                <div class="reply-hint" id="replyHint">
+                    <span class="rh-text" id="replyHintText"></span>
+                    <button type="button" id="replyCancel" title="取消回复">×</button>
+                </div>
                 <div class="field-group">
                     <label for="name">昵称（可选）</label>
                     <input type="text" id="name" maxlength="50" placeholder="你的昵称">
@@ -203,6 +317,7 @@
                     <label for="message">留言内容</label>
                     <textarea id="message" maxlength="1000" placeholder="写下你想说的话…"></textarea>
                 </div>
+                <div class="emoji-row" id="emojiRow"></div>
                 <div class="form-foot">
                     <button class="btn" id="submitBtn" type="submit">发布留言</button>
                     <span class="status" id="status"></span>
@@ -212,6 +327,7 @@
 
         <div class="card">
             <h1>全部留言</h1>
+            <div class="counts" id="counts"></div>
             <div class="message-list" id="messageList">
                 <div class="empty">加载中…</div>
             </div>
@@ -227,6 +343,7 @@
         // 留言板走纯 HTTP 轮询：直接请求同源 /api/messages，
         // 由 Cloudflare Pages Functions 转发到 OpenFrp 隧道后的本机后端。
         var POLL_INTERVAL = 3000; // 轮询间隔（毫秒）
+        var TOKEN_KEY = 'mb.tokens';
 
         var form = document.getElementById('form');
         var nameInput = document.getElementById('name');
@@ -234,6 +351,73 @@
         var submitBtn = document.getElementById('submitBtn');
         var statusEl = document.getElementById('status');
         var listEl = document.getElementById('messageList');
+        var countsEl = document.getElementById('counts');
+        var replyHint = document.getElementById('replyHint');
+        var replyHintText = document.getElementById('replyHintText');
+        var replyCancel = document.getElementById('replyCancel');
+        var emojiRow = document.getElementById('emojiRow');
+
+        var replyTo = '';
+
+        // ---------- 删除凭证（发布时服务端返回，保存于本地） ----------
+        function readTokens() {
+            try { return JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}') || {}; }
+            catch (e) { return {}; }
+        }
+
+        function saveToken(id, token) {
+            var t = readTokens();
+            t[id] = token;
+            try { localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) {}
+        }
+
+        function forgetToken(id) {
+            var t = readTokens();
+            delete t[id];
+            try { localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) {}
+        }
+
+        function isMine(id) { return !!readTokens()[id]; }
+
+        // 清理已不存在留言的遗留凭证（例如随父留言一起被删除的回复）
+        function pruneTokens(list) {
+            var alive = {};
+            (Array.isArray(list) ? list : []).forEach(function (m) { alive[m.id] = true; });
+            var t = readTokens();
+            var changed = false;
+            Object.keys(t).forEach(function (id) {
+                if (!alive[id]) { delete t[id]; changed = true; }
+            });
+            if (changed) {
+                try { localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) {}
+            }
+        }
+
+        // ---------- 表情快捷输入 ----------
+        ['😀', '😂', '🥰', '😎', '🤔', '😭', '👍', '👏', '🎉', '❤️', '🔥', '🌙', '⭐', '🍀', '🐱', '☕'].forEach(function (e) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = e;
+            b.addEventListener('click', function () {
+                messageInput.value += e;
+                messageInput.focus();
+            });
+            emojiRow.appendChild(b);
+        });
+
+        // ---------- 回复 ----------
+        function setReply(id, name) {
+            replyTo = id || '';
+            if (replyTo) {
+                replyHintText.textContent = '正在回复 @' + (name || '匿名');
+                replyHint.classList.add('show');
+            } else {
+                replyHint.classList.remove('show');
+                replyHintText.textContent = '';
+            }
+        }
+
+        replyCancel.addEventListener('click', function () { setReply('', ''); });
 
         function formatTime(iso) {
             var d = new Date(iso);
@@ -243,32 +427,142 @@
                 ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
         }
 
+        function byTimeAsc(a, b) { return new Date(a.time) - new Date(b.time); }
+        function byTimeDesc(a, b) { return new Date(b.time) - new Date(a.time); }
+
+        function makeMsg(m, isReply) {
+            var el = document.createElement('div');
+            el.className = 'msg' + (isReply ? ' reply' : '') + (isMine(m.id) ? ' mine' : '');
+
+            var head = document.createElement('div');
+            head.className = 'msg-head';
+
+            var name = document.createElement('span');
+            name.className = 'msg-name';
+            name.textContent = (m.name || '匿名') + (isMine(m.id) ? '（我）' : '');
+
+            var time = document.createElement('span');
+            time.className = 'msg-time';
+            time.textContent = formatTime(m.time);
+
+            head.appendChild(name);
+            head.appendChild(time);
+
+            var body = document.createElement('div');
+            body.className = 'msg-body';
+            body.textContent = m.message;
+
+            var actions = document.createElement('div');
+            actions.className = 'msg-actions';
+
+            var rp = document.createElement('button');
+            rp.type = 'button';
+            rp.textContent = '回复';
+            rp.addEventListener('click', function () {
+                setReply(m.id, m.name);
+                messageInput.focus();
+            });
+            actions.appendChild(rp);
+
+            if (isMine(m.id)) {
+                var del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'danger';
+                del.textContent = '删除';
+                del.addEventListener('click', function () { removeMessage(m); });
+                actions.appendChild(del);
+            }
+
+            el.appendChild(head);
+            el.appendChild(body);
+            el.appendChild(actions);
+            return el;
+        }
+
         function render(messages) {
-            if (!messages || messages.length === 0) {
-                listEl.innerHTML = '<div class="empty">还没有留言，来抢沙发吧～</div>';
+            var all = Array.isArray(messages) ? messages : [];
+
+            if (!all.length) {
+                listEl.replaceChildren();
+                var empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.textContent = '还没有留言，来抢沙发吧～';
+                listEl.appendChild(empty);
+                countsEl.replaceChildren();
                 return;
             }
-            listEl.innerHTML = '';
-            messages.slice().reverse().forEach(function (m) {
-                var el = document.createElement('div');
-                el.className = 'msg';
-                var head = document.createElement('div');
-                head.className = 'msg-head';
-                var name = document.createElement('span');
-                name.className = 'msg-name';
-                name.textContent = m.name || '匿名';
-                var time = document.createElement('span');
-                time.className = 'msg-time';
-                time.textContent = formatTime(m.time);
-                head.appendChild(name);
-                head.appendChild(time);
-                var body = document.createElement('div');
-                body.className = 'msg-body';
-                body.textContent = m.message;
-                el.appendChild(head);
-                el.appendChild(body);
-                listEl.appendChild(el);
+
+            var byId = {};
+            all.forEach(function (m) { byId[m.id] = m; });
+
+            var tops = [];
+            var children = {};
+            all.forEach(function (m) {
+                if (m.replyTo && byId[m.replyTo]) {
+                    (children[m.replyTo] = children[m.replyTo] || []).push(m);
+                } else {
+                    tops.push(m);
+                }
             });
+            tops.sort(byTimeDesc);
+
+            var frag = document.createDocumentFragment();
+            tops.forEach(function (m) {
+                var box = makeMsg(m, false);
+                var kids = (children[m.id] || []).slice().sort(byTimeAsc);
+                if (kids.length) {
+                    var wrap = document.createElement('div');
+                    wrap.className = 'replies';
+                    kids.forEach(function (k) { wrap.appendChild(makeMsg(k, true)); });
+                    box.appendChild(wrap);
+                }
+                frag.appendChild(box);
+            });
+            listEl.replaceChildren(frag);
+
+            var today = new Date().toDateString();
+            var todayCount = 0;
+            var mineCount = 0;
+            all.forEach(function (m) {
+                if (new Date(m.time).toDateString() === today) todayCount++;
+                if (isMine(m.id)) mineCount++;
+            });
+
+            countsEl.replaceChildren();
+            ['共 ' + all.length + ' 条', '今日 ' + todayCount + ' 条', '我的 ' + mineCount + ' 条'].forEach(function (t) {
+                var s = document.createElement('span');
+                s.textContent = t;
+                countsEl.appendChild(s);
+            });
+        }
+
+        // ---------- 删除自己的留言 ----------
+        function removeMessage(m) {
+            var token = readTokens()[m.id];
+            if (!token) return;
+            var tip = m.replyTo ? '确定删除这条回复吗？' : '确定删除这条留言吗？（其下的回复也会一起删除）';
+            if (!window.confirm(tip)) return;
+
+            fetch('/api/messages/' + encodeURIComponent(m.id), {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            })
+                .then(function (r) {
+                    return r.json().then(function (j) {
+                        if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+                        return j;
+                    });
+                })
+                .then(function () {
+                    forgetToken(m.id);
+                    setStatus('已删除', false);
+                    setTimeout(function () { setStatus('', false); }, 1800);
+                    loadMessages();
+                })
+                .catch(function (err) {
+                    setStatus(err.message || '删除失败', true);
+                });
         }
 
         function setStatus(text, isError) {
@@ -285,13 +579,14 @@
                 .then(function (data) {
                     setStatus('已连接（HTTP 轮询）', false);
                     setTimeout(function () { setStatus('', false); }, 1500);
+                    pruneTokens(data);
                     render(data);
                 })
                 .catch(function () {
                     setStatus('无法连接服务器，请稍后重试', true);
                     var empty = listEl.querySelector('.empty');
                     if (empty && empty.textContent.indexOf('加载中') !== -1) {
-                        listEl.innerHTML = '<div class="empty">无法连接服务器，请确认后端服务已启动</div>';
+                        empty.textContent = '无法连接服务器，请确认后端服务已启动';
                     }
                 });
         }
@@ -310,7 +605,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: nameInput.value.trim(),
-                    message: message
+                    message: message,
+                    replyTo: replyTo
                 })
             })
                 .then(function (r) {
@@ -319,9 +615,11 @@
                         return j;
                     });
                 })
-                .then(function () {
+                .then(function (j) {
+                    if (j && j.token && j.item && j.item.id) saveToken(j.item.id, j.token);
                     messageInput.value = '';
                     nameInput.value = '';
+                    setReply('', '');
                     setStatus('发布成功', false);
                     setTimeout(function () { setStatus('', false); }, 2000);
                     loadMessages();

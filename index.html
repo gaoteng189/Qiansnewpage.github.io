@@ -277,6 +277,95 @@
             color: var(--md-on-primary-container);
         }
 
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--md-outline);
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.65;
+            font-family: "SF Mono", "JetBrains Mono", "Microsoft YaHei", monospace;
+            background: transparent;
+            color: var(--md-on-surface);
+            outline: none;
+            resize: vertical;
+            min-height: 92px;
+        }
+
+        textarea:focus {
+            border: 2px solid var(--md-primary);
+            padding: 11px 15px;
+        }
+
+        .result-box.multi {
+            align-items: flex-start;
+            max-height: 280px;
+            overflow: auto;
+        }
+
+        .result-box.multi .text {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background: var(--md-secondary-container);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .stat-item .k {
+            font-size: 12px;
+            color: var(--md-on-secondary-container);
+            opacity: 0.72;
+        }
+
+        .stat-item .v {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--md-on-secondary-container);
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+            word-break: break-all;
+        }
+
+        .swatch {
+            height: 68px;
+            border-radius: 14px;
+            border: 1px solid var(--md-outline);
+            margin-top: 12px;
+            background: var(--md-secondary-container);
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .color-row input[type="text"] {
+            flex: 1;
+            min-width: 190px;
+        }
+
+        input[type="color"] {
+            width: 58px;
+            height: 44px;
+            padding: 3px;
+            border: 1px solid var(--md-outline);
+            border-radius: 12px;
+            background: transparent;
+            cursor: pointer;
+        }
+
         p {
             text-align: center;
         }
@@ -362,10 +451,85 @@
             <div class="verify-result" id="pwdStrength"></div>
         </div>
 
+        <div class="card">
+            <h2>JSON 格式化 / 校验</h2>
+            <div class="input-group">
+                <label for="jsonInput">JSON 内容</label>
+                <textarea id="jsonInput" spellcheck="false" placeholder='{"name":"Qianchenawa","tags":["tool","json"]}'></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="jsonFormat">格式化</button>
+                <button class="btn btn-secondary" id="jsonMinify">压缩</button>
+                <button class="btn btn-secondary" id="jsonValidate">校验</button>
+                <button class="btn btn-secondary" id="jsonClear">清空</button>
+            </div>
+            <div class="result-box multi">
+                <span class="text" id="jsonResult">结果将显示在这里</span>
+                <button class="copy-btn" data-target="jsonResult">复制</button>
+            </div>
+            <div class="verify-result" id="jsonStatus"></div>
+        </div>
+
+        <div class="card">
+            <h2>时间戳转换</h2>
+            <div class="input-group">
+                <label for="tsInput">时间戳（秒 / 毫秒）或日期字符串</label>
+                <input type="text" id="tsInput" placeholder="1750000000 、1750000000000 或 2026-09-18 12:00:00">
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="tsConvert">转换</button>
+                <button class="btn btn-secondary" id="tsNow">填入当前时间戳</button>
+            </div>
+            <div class="stat-grid" id="tsResult"></div>
+        </div>
+
+        <div class="card">
+            <h2>URL 编解码</h2>
+            <div class="input-group">
+                <label for="urlInput">文本内容</label>
+                <textarea id="urlInput" spellcheck="false" placeholder="支持中文，输入要编码或解码的内容"></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="urlEncode">编码</button>
+                <button class="btn btn-secondary" id="urlDecode">解码</button>
+            </div>
+            <div class="result-box multi">
+                <span class="text" id="urlResult">结果将显示在这里</span>
+                <button class="copy-btn" data-target="urlResult">复制</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>颜色转换</h2>
+            <div class="color-row">
+                <input type="color" id="colorPick" value="#8d6e63" aria-label="选择颜色">
+                <input type="text" id="colorInput" value="#8D6E63" placeholder="#8D6E63 / rgb(141,110,99) / hsl(16,17%,51%)">
+                <button class="btn btn-secondary" id="colorConvert">转换</button>
+            </div>
+            <div class="swatch" id="colorSwatch" style="background:#8D6E63"></div>
+            <div class="stat-grid" id="colorResult"></div>
+        </div>
+
+        <div class="card">
+            <h2>文本统计 / 整理</h2>
+            <div class="input-group">
+                <label for="textInput">文本内容</label>
+                <textarea id="textInput" spellcheck="false" placeholder="粘贴文本，实时统计字数、行数与中文字符数"></textarea>
+            </div>
+            <div class="stat-grid" id="textStats"></div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="textDedupe">行去重</button>
+                <button class="btn btn-secondary" id="textTrimBlank">删空行</button>
+                <button class="btn btn-secondary" id="textUpper">转大写</button>
+                <button class="btn btn-secondary" id="textLower">转小写</button>
+            </div>
+        </div>
+
         <p class="hint"><a href="https://desktop-b2crhua.tailc0e496.ts.net/message/" target="_blank" rel="noopener noreferrer nofollow">留言板</a></p>
         <p class="hint"><a href="game/index.html" target="_blank" rel="noopener noreferrer">2D 跑酷小游戏</a></p>
         <p class="hint"><a href="video/index.html" target="_blank" rel="noopener noreferrer">视频播放测试</a></p>
         <p class="hint"><a href="novel/index.html" target="_blank" rel="noopener noreferrer">小说阅读器</a></p>
+        <p class="hint"><a href="todo/index.html" target="_blank" rel="noopener noreferrer">待办清单</a></p>
         <p>2026 Qianchenawa. Licensed under MIT. Open source on <a rel="noopener noreferrer nofollow" href="https://github.com/gaoteng189/Qiansnewpage.github.io" target="_blank">Github</a></p>
     </div>
 
@@ -662,6 +826,303 @@
             el.textContent = s.text;
             el.className = 'verify-result ' + s.cls;
         });
+
+        // ---------- 统计卡片辅助 ----------
+        function statCard(k, v) {
+            var box = document.createElement('div');
+            box.className = 'stat-item';
+            var kk = document.createElement('div');
+            kk.className = 'k';
+            kk.textContent = k;
+            var vv = document.createElement('div');
+            vv.className = 'v';
+            vv.textContent = v;
+            box.appendChild(kk);
+            box.appendChild(vv);
+            return box;
+        }
+
+        // ---------- JSON 格式化 / 校验 ----------
+        (function () {
+            var input = document.getElementById('jsonInput');
+            var out = document.getElementById('jsonResult');
+            var status = document.getElementById('jsonStatus');
+
+            function setStatus(text, cls) {
+                status.textContent = text || '';
+                status.className = 'verify-result' + (cls ? ' ' + cls : '');
+            }
+
+            function parse() {
+                try {
+                    return { ok: true, value: JSON.parse(input.value) };
+                } catch (e) {
+                    return { ok: false, error: e.message };
+                }
+            }
+
+            document.getElementById('jsonFormat').addEventListener('click', function () {
+                if (!input.value.trim()) { out.textContent = '请先粘贴 JSON 内容'; setStatus(''); return; }
+                var r = parse();
+                if (!r.ok) { out.textContent = '解析失败'; setStatus('✗ ' + r.error, 'fail'); return; }
+                out.textContent = JSON.stringify(r.value, null, 2);
+                setStatus('✓ 格式正确', 'success');
+            });
+
+            document.getElementById('jsonMinify').addEventListener('click', function () {
+                var r = parse();
+                if (!r.ok) { out.textContent = '解析失败'; setStatus('✗ ' + r.error, 'fail'); return; }
+                out.textContent = JSON.stringify(r.value);
+                setStatus('✓ 已压缩', 'success');
+            });
+
+            document.getElementById('jsonValidate').addEventListener('click', function () {
+                var r = parse();
+                if (!r.ok) { setStatus('✗ ' + r.error, 'fail'); return; }
+                var desc;
+                if (Array.isArray(r.value)) desc = r.value.length + ' 项数组';
+                else if (r.value && typeof r.value === 'object') desc = Object.keys(r.value).length + ' 个键';
+                else desc = typeof r.value;
+                setStatus('✓ JSON 有效（' + desc + '）', 'success');
+            });
+
+            document.getElementById('jsonClear').addEventListener('click', function () {
+                input.value = '';
+                out.textContent = '结果将显示在这里';
+                setStatus('');
+            });
+        })();
+
+        // ---------- 时间戳转换 ----------
+        (function () {
+            var input = document.getElementById('tsInput');
+            var out = document.getElementById('tsResult');
+
+            function pad(n) { return String(n).padStart(2, '0'); }
+
+            function fmtLocal(d) {
+                return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+                    pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+            }
+
+            function show(d) {
+                if (!d || isNaN(d.getTime())) {
+                    out.replaceChildren(statCard('结果', '无法识别'));
+                    return;
+                }
+                out.replaceChildren(
+                    statCard('本地时间', fmtLocal(d)),
+                    statCard('UTC', d.toUTCString()),
+                    statCard('ISO 8601', d.toISOString()),
+                    statCard('时间戳（秒）', String(Math.floor(d.getTime() / 1000))),
+                    statCard('时间戳（毫秒）', String(d.getTime()))
+                );
+            }
+
+            function convert() {
+                var raw = input.value.trim();
+                if (!raw) { out.replaceChildren(statCard('结果', '请输入内容')); return; }
+                if (/^-?\d+$/.test(raw)) {
+                    var n = Number(raw);
+                    // 12 位及以上按毫秒，其余按秒
+                    var ms = raw.replace('-', '').length >= 12 ? n : n * 1000;
+                    show(new Date(ms));
+                    return;
+                }
+                var s = raw.replace(/\//g, '-');
+                var d = new Date(s.replace(' ', 'T'));
+                if (isNaN(d.getTime())) d = new Date(s);
+                show(d);
+            }
+
+            document.getElementById('tsConvert').addEventListener('click', convert);
+            document.getElementById('tsNow').addEventListener('click', function () {
+                input.value = String(Math.floor(Date.now() / 1000));
+                convert();
+            });
+            input.addEventListener('keydown', function (e) { if (e.key === 'Enter') convert(); });
+        })();
+
+        // ---------- URL 编解码 ----------
+        (function () {
+            var input = document.getElementById('urlInput');
+            var out = document.getElementById('urlResult');
+
+            document.getElementById('urlEncode').addEventListener('click', function () {
+                try { out.textContent = encodeURIComponent(input.value); }
+                catch (e) { out.textContent = '编码失败'; }
+            });
+
+            document.getElementById('urlDecode').addEventListener('click', function () {
+                try { out.textContent = decodeURIComponent(input.value.trim()); }
+                catch (e) { out.textContent = '解码失败：包含无效的百分号编码'; }
+            });
+        })();
+
+        // ---------- 颜色转换 ----------
+        (function () {
+            var textInput = document.getElementById('colorInput');
+            var picker = document.getElementById('colorPick');
+            var swatch = document.getElementById('colorSwatch');
+            var out = document.getElementById('colorResult');
+            var probe = document.createElement('canvas').getContext('2d');
+
+            function hexToRgb(hex) {
+                var h = hex.replace('#', '');
+                return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+            }
+
+            function toHex(r, g, b) {
+                return '#' + [r, g, b].map(function (x) {
+                    return x.toString(16).padStart(2, '0');
+                }).join('').toUpperCase();
+            }
+
+            function hue2rgb(p, q, t) {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1 / 6) return p + (q - p) * 6 * t;
+                if (t < 1 / 2) return q;
+                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p;
+            }
+
+            function hslToRgb(h, s, l) {
+                h = ((h % 360) + 360) % 360 / 360;
+                var r, g, b;
+                if (!s) {
+                    r = g = b = l;
+                } else {
+                    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    var p = 2 * l - q;
+                    r = hue2rgb(p, q, h + 1 / 3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1 / 3);
+                }
+                return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+            }
+
+            function rgbToHsl(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                var max = Math.max(r, g, b), min = Math.min(r, g, b);
+                var h = 0, s = 0, l = (max + min) / 2;
+                var d = max - min;
+                if (d) {
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+                    else if (max === g) h = (b - r) / d + 2;
+                    else h = (r - g) / d + 4;
+                    h *= 60;
+                }
+                return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+            }
+
+            function parseColor(str) {
+                var s = String(str || '').trim();
+                if (!s) return null;
+                var m;
+                if ((m = s.match(/^#?([0-9a-f]{3})$/i))) {
+                    var h3 = m[1];
+                    return [parseInt(h3[0] + h3[0], 16), parseInt(h3[1] + h3[1], 16), parseInt(h3[2] + h3[2], 16)];
+                }
+                if ((m = s.match(/^#?([0-9a-f]{6})$/i))) return hexToRgb(m[1]);
+                if ((m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i))) {
+                    return [Number(m[1]), Number(m[2]), Number(m[3])].map(function (n) {
+                        return Math.max(0, Math.min(255, n));
+                    });
+                }
+                if ((m = s.match(/^hsla?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%/i))) {
+                    return hslToRgb(Number(m[1]), Number(m[2]) / 100, Number(m[3]) / 100);
+                }
+                // 其余写法（如 red）交给浏览器解析
+                probe.fillStyle = '#000000';
+                probe.fillStyle = s;
+                var v = probe.fillStyle;
+                if (typeof v === 'string' && v.charAt(0) === '#' && v.length === 7) return hexToRgb(v);
+                return null;
+            }
+
+            function show(rgb, from) {
+                swatch.style.background = 'rgb(' + rgb.join(',') + ')';
+                var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+                out.replaceChildren(
+                    statCard('HEX', toHex(rgb[0], rgb[1], rgb[2])),
+                    statCard('RGB', 'rgb(' + rgb.join(', ') + ')'),
+                    statCard('HSL', 'hsl(' + hsl[0] + ', ' + hsl[1] + '%, ' + hsl[2] + '%)'),
+                    statCard('识别自', from)
+                );
+            }
+
+            function convert(fromPicker) {
+                var rgb = fromPicker ? hexToRgb(picker.value) : parseColor(textInput.value);
+                if (!rgb) {
+                    out.replaceChildren(statCard('结果', '无法识别该颜色'));
+                    return;
+                }
+                if (!fromPicker) picker.value = toHex(rgb[0], rgb[1], rgb[2]).toLowerCase();
+                show(rgb, fromPicker ? '取色器' : '输入值');
+            }
+
+            document.getElementById('colorConvert').addEventListener('click', function () { convert(false); });
+            picker.addEventListener('input', function () { convert(true); });
+            textInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') convert(false); });
+            convert(false);
+        })();
+
+        // ---------- 文本统计 / 整理 ----------
+        (function () {
+            var input = document.getElementById('textInput');
+            var stats = document.getElementById('textStats');
+
+            function update() {
+                var t = input.value;
+                var noSpace = t.replace(/\s/g, '');
+                var cn = (t.match(/[\u4e00-\u9fa5]/g) || []).length;
+                var words = (t.match(/[A-Za-z]+(?:['\-][A-Za-z]+)*/g) || []).length;
+                var lines = t ? t.split(/\r?\n/).length : 0;
+                var uniq = t ? new Set(t.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean)).size : 0;
+                stats.replaceChildren(
+                    statCard('字符（含空格）', String(t.length)),
+                    statCard('字符（不含空格）', String(noSpace.length)),
+                    statCard('中文字符', String(cn)),
+                    statCard('英文单词', String(words)),
+                    statCard('行数', String(lines)),
+                    statCard('去重行数', String(uniq))
+                );
+            }
+
+            input.addEventListener('input', update);
+
+            document.getElementById('textDedupe').addEventListener('click', function () {
+                var seen = new Set();
+                var kept = [];
+                input.value.split(/\r?\n/).forEach(function (line) {
+                    var key = line.trim();
+                    if (!key || seen.has(key)) return;
+                    seen.add(key);
+                    kept.push(line);
+                });
+                input.value = kept.join('\n');
+                update();
+            });
+
+            document.getElementById('textTrimBlank').addEventListener('click', function () {
+                input.value = input.value.split(/\r?\n/).filter(function (l) { return l.trim(); }).join('\n');
+                update();
+            });
+
+            document.getElementById('textUpper').addEventListener('click', function () {
+                input.value = input.value.toUpperCase();
+                update();
+            });
+
+            document.getElementById('textLower').addEventListener('click', function () {
+                input.value = input.value.toLowerCase();
+                update();
+            });
+
+            update();
+        })();
 
         // 初始化
         initCanvas();

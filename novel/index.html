@@ -323,6 +323,161 @@
             line-height: 1.7;
         }
 
+        /* ---------- 搜索 / 书签弹层 ---------- */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 50;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-panel {
+            background: var(--md-surface-container);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 12px 12px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--md-outline-variant);
+        }
+
+        .modal-body {
+            padding: 16px 20px 20px;
+            overflow-y: auto;
+        }
+
+        .modal-body input[type="text"] {
+            width: 100%;
+            padding: 11px 16px;
+            border: 1px solid var(--md-outline);
+            border-radius: 999px;
+            background: transparent;
+            color: var(--md-on-surface);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .modal-body input[type="text"]:focus {
+            border: 2px solid var(--md-primary);
+            padding: 10px 15px;
+        }
+
+        .hit {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: var(--md-surface-container-high);
+            margin-top: 8px;
+            cursor: pointer;
+            transition: background-color .12s, color .12s;
+        }
+
+        .hit:hover {
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+        }
+
+        .hit .h-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .hit .h-text {
+            font-size: 13px;
+            color: var(--md-on-surface-variant);
+            margin-top: 4px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .hit:hover .h-text { color: inherit; opacity: .8; }
+
+        .hit mark {
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+            border-radius: 4px;
+            padding: 0 2px;
+        }
+
+        .bm {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 10px 12px 14px;
+            border-radius: 14px;
+            background: var(--md-surface-container-high);
+            margin-top: 8px;
+        }
+
+        .bm-title {
+            flex: 1;
+            min-width: 0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bm-title:hover { color: var(--md-primary); }
+
+        .bm-time {
+            font-size: 12px;
+            color: var(--md-on-surface-variant);
+            flex-shrink: 0;
+        }
+
+        .time-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .time-box > div {
+            background: var(--md-secondary-container);
+            color: var(--md-on-secondary-container);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .time-box .k {
+            display: block;
+            font-size: 12px;
+            opacity: .75;
+        }
+
+        .time-box .v {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+
+        .full-btn {
+            width: 100%;
+        }
+
         /* ---------- 阅读区 ---------- */
         .layout {
             display: grid;
@@ -527,6 +682,8 @@
             </div>
             <div class="tools">
                 <button class="chip" id="tocBtn" title="打开目录">目录</button>
+                <button class="chip" id="searchBtn" title="全文搜索">搜索</button>
+                <button class="chip" id="bookmarkBtn" title="书签与阅读时长">书签</button>
                 <div class="chip-group">
                     <button class="chip" id="fontMinus" title="减小字号">A-</button>
                     <span class="chip-val" id="fontVal">18</span>
@@ -601,6 +758,16 @@
         </section>
     </div>
 
+    <div class="modal" id="modal">
+        <div class="modal-panel">
+            <div class="modal-head">
+                <span id="modalTitle">搜索</span>
+                <button class="icon-btn" id="modalClose" title="关闭">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -621,6 +788,13 @@
         var shelf = document.getElementById('shelf');
         var shelfHint = document.getElementById('shelfHint');
         var shelfRefresh = document.getElementById('shelfRefresh');
+
+        var searchBtn = document.getElementById('searchBtn');
+        var bookmarkBtn = document.getElementById('bookmarkBtn');
+        var modal = document.getElementById('modal');
+        var modalTitle = document.getElementById('modalTitle');
+        var modalBody = document.getElementById('modalBody');
+        var modalClose = document.getElementById('modalClose');
 
         var toc = document.getElementById('toc');
         var tocList = document.getElementById('tocList');
@@ -957,11 +1131,16 @@
         nextBtn.addEventListener('click', function () { goTo(state.index + 1, false); });
 
         document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                if (modal.classList.contains('show')) { closeModal(); return; }
+                closeToc();
+                return;
+            }
             if (readerPanel.hidden) return;
+            if (modal.classList.contains('show')) return;
             if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
             if (e.key === 'ArrowLeft') { goTo(state.index - 1, false); }
             else if (e.key === 'ArrowRight') { goTo(state.index + 1, false); }
-            else if (e.key === 'Escape') { closeToc(); }
         });
 
         // ---------- 导入 ----------
@@ -1152,6 +1331,252 @@
         }
 
         shelfRefresh.addEventListener('click', loadShelf);
+
+        // ---------- 全文搜索 ----------
+        function showModal() { modal.classList.add('show'); }
+        function closeModal() { modal.classList.remove('show'); }
+
+        modalClose.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+        function makeExcerpt(text, idx, len) {
+            var start = Math.max(0, idx - 24);
+            var end = Math.min(text.length, idx + len + 46);
+            return (start > 0 ? '…' : '') + text.slice(start, end).replace(/\s+/g, ' ') + (end < text.length ? '…' : '');
+        }
+
+        // 安全高亮：用 DOM 拼接，避免 innerHTML 注入
+        function highlightInto(el, text, q) {
+            var lower = text.toLowerCase();
+            var lq = q.toLowerCase();
+            var pos = 0;
+            for (;;) {
+                var i = lower.indexOf(lq, pos);
+                if (i < 0) {
+                    el.appendChild(document.createTextNode(text.slice(pos)));
+                    return;
+                }
+                if (i > pos) el.appendChild(document.createTextNode(text.slice(pos, i)));
+                var mark = document.createElement('mark');
+                mark.textContent = text.slice(i, i + q.length);
+                el.appendChild(mark);
+                pos = i + q.length;
+            }
+        }
+
+        function openSearch() {
+            if (!state.chapters.length) { toast('请先导入或从书库选择一本小说'); return; }
+            modalTitle.textContent = '全文搜索';
+            modalBody.replaceChildren();
+
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = '输入关键词，搜索全部章节';
+
+            var result = document.createElement('div');
+            result.style.marginTop = '14px';
+
+            modalBody.appendChild(input);
+            modalBody.appendChild(result);
+            showModal();
+            input.focus();
+
+            var timer = null;
+
+            function run() {
+                var q = input.value.trim();
+                result.replaceChildren();
+                if (!q) return;
+
+                var MAX = 200;
+                var hits = [];
+                for (var i = 0; i < state.chapters.length && hits.length < MAX; i++) {
+                    var ch = state.chapters[i];
+                    var idx = ch.content.indexOf(q);
+                    if (idx < 0) {
+                        if (ch.title.indexOf(q) >= 0) hits.push({ i: i, title: ch.title, text: ch.content.slice(0, 60) });
+                        continue;
+                    }
+                    hits.push({ i: i, title: ch.title, text: makeExcerpt(ch.content, idx, q.length) });
+                }
+
+                if (!hits.length) {
+                    result.appendChild(shelfNote('没有找到「' + q + '」'));
+                    return;
+                }
+
+                result.appendChild(shelfNote('共 ' + hits.length + ' 处匹配' +
+                    (hits.length >= MAX ? '（仅显示前 ' + MAX + ' 处）' : '')));
+
+                hits.forEach(function (h) {
+                    var el = document.createElement('div');
+                    el.className = 'hit';
+
+                    var t = document.createElement('div');
+                    t.className = 'h-title';
+                    t.textContent = h.title;
+
+                    var x = document.createElement('div');
+                    x.className = 'h-text';
+                    highlightInto(x, h.text, q);
+
+                    el.appendChild(t);
+                    el.appendChild(x);
+                    el.addEventListener('click', function () {
+                        closeModal();
+                        goTo(h.i, true);
+                    });
+                    result.appendChild(el);
+                });
+            }
+
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(run, 200);
+            });
+        }
+
+        // ---------- 书签 ----------
+        var BM_KEY = 'novel.bookmarks';
+
+        function readBookmarks() {
+            var arr = readJSON(BM_KEY);
+            return Array.isArray(arr) ? arr : [];
+        }
+
+        function writeBookmarks(arr) { writeJSON(BM_KEY, arr); }
+
+        function addBookmark() {
+            if (!state.chapters.length) return;
+            var list = readBookmarks();
+            var dup = list.some(function (b) { return b.chapter === state.index; });
+            if (dup) { toast('这一章已经在书签里了'); return; }
+            list.unshift({
+                chapter: state.index,
+                title: state.chapters[state.index].title,
+                ratio: currentRatio(),
+                at: Date.now()
+            });
+            writeBookmarks(list);
+            toast('已添加书签');
+            openBookmarks();
+        }
+
+        function openBookmarks() {
+            if (!state.chapters.length) { toast('请先导入或从书库选择一本小说'); return; }
+            modalTitle.textContent = '书签与阅读时长';
+            modalBody.replaceChildren();
+
+            var box = document.createElement('div');
+            box.className = 'time-box';
+            box.appendChild(timeCell('本次阅读', fmtDuration(sessionMs), 'timeSession'));
+            box.appendChild(timeCell('累计阅读', fmtDuration(totalMs), 'timeTotal'));
+            modalBody.appendChild(box);
+
+            var addBtn = document.createElement('button');
+            addBtn.className = 'btn full-btn';
+            addBtn.textContent = '为当前章节添加书签';
+            addBtn.addEventListener('click', addBookmark);
+            modalBody.appendChild(addBtn);
+
+            var list = readBookmarks();
+            var head = shelfNote(list.length ? '共 ' + list.length + ' 个书签' : '还没有书签');
+            head.style.marginTop = '16px';
+            modalBody.appendChild(head);
+
+            list.forEach(function (b) {
+                var row = document.createElement('div');
+                row.className = 'bm';
+
+                var t = document.createElement('span');
+                t.className = 'bm-title';
+                t.textContent = b.title;
+                t.title = b.title;
+                t.addEventListener('click', function () {
+                    closeModal();
+                    goTo(b.chapter, true);
+                    if (b.ratio) restoreScroll(b.ratio);
+                });
+
+                var tm = document.createElement('span');
+                tm.className = 'bm-time';
+                tm.textContent = new Date(b.at).toLocaleDateString('zh-CN');
+
+                var del = document.createElement('button');
+                del.className = 'icon-btn';
+                del.textContent = '×';
+                del.title = '删除书签';
+                del.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    writeBookmarks(readBookmarks().filter(function (x) {
+                        return !(x.chapter === b.chapter && x.at === b.at);
+                    }));
+                    openBookmarks();
+                });
+
+                row.appendChild(t);
+                row.appendChild(tm);
+                row.appendChild(del);
+                modalBody.appendChild(row);
+            });
+
+            showModal();
+        }
+
+        // ---------- 阅读时长统计 ----------
+        var TIME_KEY = 'novel.readtime';
+        var rtSaved = readJSON(TIME_KEY) || {};
+        var totalMs = typeof rtSaved.total === 'number' ? rtSaved.total : 0;
+        var sessionMs = 0;
+        var lastTick = Date.now();
+        var persistAcc = 0;
+
+        function saveReadTime() {
+            writeJSON(TIME_KEY, { total: Math.round(totalMs) });
+        }
+
+        function fmtDuration(ms) {
+            var s = Math.max(0, Math.floor(ms / 1000));
+            var h = Math.floor(s / 3600);
+            var m = Math.floor((s % 3600) / 60);
+            var sec = s % 60;
+            function p(n) { return String(n).padStart(2, '0'); }
+            return h > 0 ? h + ':' + p(m) + ':' + p(sec) : p(m) + ':' + p(sec);
+        }
+
+        function timeCell(label, value, id) {
+            var d = document.createElement('div');
+            var k = document.createElement('span');
+            k.className = 'k';
+            k.textContent = label;
+            var v = document.createElement('span');
+            v.className = 'v';
+            v.textContent = value;
+            if (id) v.id = id;
+            d.appendChild(k);
+            d.appendChild(v);
+            return d;
+        }
+
+        setInterval(function () {
+            var now = Date.now();
+            var delta = now - lastTick;
+            lastTick = now;
+            if (document.visibilityState !== 'visible') return;
+            sessionMs += delta;
+            totalMs += delta;
+            persistAcc += delta;
+            if (persistAcc >= 15000) { persistAcc = 0; saveReadTime(); }
+            var s = document.getElementById('timeSession');
+            var t = document.getElementById('timeTotal');
+            if (s) s.textContent = fmtDuration(sessionMs);
+            if (t) t.textContent = fmtDuration(totalMs);
+        }, 1000);
+
+        window.addEventListener('beforeunload', saveReadTime);
+
+        searchBtn.addEventListener('click', openSearch);
+        bookmarkBtn.addEventListener('click', openBookmarks);
 
         changeBtn.addEventListener('click', function () {
             if (!window.confirm('确定要清空当前小说并重新导入吗？（会清除已保存的进度）')) return;
