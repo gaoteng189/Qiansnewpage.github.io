@@ -21,7 +21,8 @@
 ├── novels/             # 服务器端小说书库（txt 文件不入库）
 ├── message/            # 留言板页面
 ├── todo/               # 待办清单
-├── server.js           # 留言板后端（零依赖 Node.js）
+├── desktop/            # Electron 桌面应用工程
+├── server.js           # 留言板后端（零依赖 Node.js，可被 Electron 复用）
 ├── start-server.cpp    # 启动程序源码（Qt6 GUI）
 ├── stub.cpp            # 单 exe 启动器（Win32，内嵌运行时依赖）
 └── bin/                # 编译好的 start-server.exe（单文件）
@@ -71,9 +72,33 @@ tailscale funnel --bg 50304
 - **停止**：停止后端并关闭 Funnel
 - 端口可在界面修改，保存到 `.server-port`
 
+### 桌面应用（Electron）
+
+`desktop/` 是桌面版工程：应用内置 Node HTTP 服务，双击即用，不需要另外启动后端。
+
+```bash
+cd desktop
+npm install     # 首次安装 Electron 依赖
+npm start       # 开发模式运行
+npm run dist    # 构建 Windows 安装包（NSIS，输出 desktop/dist）
+```
+
+- 应用直接复用仓库的 `server.js`（通过 `createServer()` 导出），服务只监听 `127.0.0.1`，
+  端口从 50304 起自动寻找空闲值，避免和已有服务冲突。
+- 数据写在用户目录 `%APPDATA%\千叶新页`：`messages.json`（留言）与 `novels/`（小说书库）。
+- 打包资源由 `scripts/sync-web.js` 从仓库根目录**按白名单**同步到 `desktop/www`，
+  不会把 `bin/`、`start-server.exe`、`payload.bin` 等编译产物带进安装包。
+- 国内网络建议先设置镜像再安装依赖 / 打包：
+
+```bash
+$env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
+$env:ELECTRON_BUILDER_BINARIES_MIRROR = "https://npmmirror.com/mirrors/electron-builder-binaries/"
+```
+
 ## 技术栈
 
 - 前端：原生 HTML / CSS / JavaScript
 - 后端：Node.js（零依赖，原生 http / fs / crypto）
+- 桌面端：Electron（内置 Node 服务，可打包为 Windows 安装程序）
 - 启动程序：C++ / Qt6（MSYS2 UCRT64 工具链）
 - 内网穿透：Tailscale Funnel

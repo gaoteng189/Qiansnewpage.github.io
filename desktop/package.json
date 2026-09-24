@@ -1,0 +1,53 @@
+{
+  "name": "qiansnewpage-desktop",
+  "productName": "千叶新页",
+  "version": "1.0.0",
+  "description": "千叶新页桌面版 —— 在线工具箱 / 小说阅读 / 待办清单 / 留言板 / 小游戏",
+  "author": "Qianchenawa",
+  "license": "MIT",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "sync": "node scripts/sync-web.js",
+    "start": "npm run sync && electron .",
+    "pack": "npm run sync && electron-builder --win dir --x64",
+    "dist": "npm run sync && electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "com.qianchenawa.qiansnewpage",
+    "productName": "千叶新页",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "www/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "千叶新页",
+      "artifactName": "Qiansnewpage-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}

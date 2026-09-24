@@ -48,3 +48,8 @@ Makefile.Debug
 # 调试日志
 funnel-debug.log
 console.log
+
+# Electron 桌面工程
+desktop/node_modules/
+desktop/dist/
+desktop/www/

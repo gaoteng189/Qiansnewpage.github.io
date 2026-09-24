@@ -18,6 +18,14 @@
  *
  * 留言数据保存在服务器所在主机的 messages.json 文件中；
  * 小说文件放在服务器所在主机的 novels/ 目录中（.txt）。
+ *
+ * 也可被 Electron 主进程复用：
+ *   const { createServer } = require('./server.js');
+ *   createServer().listen(port, '127.0.0.1');
+ * 此时可用环境变量覆盖路径（打包后 asar 只读，数据需落到用户目录）：
+ *   STATIC_ROOT —— 静态资源根目录
+ *   DATA_DIR    —— messages.json 所在的可写目录
+ *   NOVEL_DIR   —— 小说书库目录
  */
 'use strict';
 
@@ -28,8 +36,11 @@ const crypto = require('crypto');
 
 const PORT = process.argv[2] || process.env.PORT || 50304;
 const HOST = process.env.HOST || '0.0.0.0';
-const ROOT = __dirname;
-const DATA_FILE = path.join(ROOT, 'messages.json');
+// 静态资源根目录（Electron 下由主进程指向解包后的网站目录）
+const ROOT = process.env.STATIC_ROOT || __dirname;
+// 可写数据目录（Electron 下指向用户数据目录，避免写入只读的 asar）
+const DATA_DIR = process.env.DATA_DIR || ROOT;
+const DATA_FILE = path.join(DATA_DIR, 'messages.json');
 const NOVEL_DIR = process.env.NOVEL_DIR || path.join(ROOT, 'novels');
 const TXT_EXT = /\.txt$/i;
 
@@ -177,8 +188,8 @@ function serveStatic(res, urlPath) {
   });
 }
 
-// ---------- 服务器 ----------
-const server = http.createServer(async (req, res) => {
+// ---------- 请求处理 ----------
+async function handleRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
   const startedAt = Date.now();
@@ -367,12 +378,22 @@ const server = http.createServer(async (req, res) => {
 
   // 静态文件
   serveStatic(res, pathname);
-});
+}
 
-server.listen(PORT, HOST, () => {
-  console.log('留言板服务器已启动');
-  console.log(`  本机访问:  http://localhost:${PORT}/`);
-  console.log(`  留言页面:  http://localhost:${PORT}/message/`);
-  console.log(`  数据文件:  ${DATA_FILE}`);
-  console.log('按 Ctrl+C 停止服务器');
-});
+function createServer() {
+  return http.createServer(handleRequest);
+}
+
+module.exports = { createServer, ROOT, DATA_DIR, DATA_FILE, NOVEL_DIR };
+
+// 直接运行（node server.js）时启动服务；被 require 时只导出
+if (require.main === module) {
+  createServer().listen(PORT, HOST, () => {
+    console.log('留言板服务器已启动');
+    console.log(`  本机访问:  http://localhost:${PORT}/`);
+    console.log(`  留言页面:  http://localhost:${PORT}/message/`);
+    console.log(`  静态目录:  ${ROOT}`);
+    console.log(`  数据目录:  ${DATA_DIR}`);
+    console.log('按 Ctrl+C 停止服务器');
+  });
+}
