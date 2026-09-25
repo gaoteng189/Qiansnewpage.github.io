@@ -42,6 +42,9 @@ app.*.map.json
 # 网站资源包（由 scripts/pack-web.js 生成，勿提交）
 assets/www.zip
 
+# 视频资源（由 scripts/pack-web.js 复制，共 86 MB，勿提交）
+assets/video/
+
 # Android 本地配置与构建缓存
 android/local.properties
 android/.gradle/

@@ -445,7 +445,15 @@
         // 留言板走纯 HTTP 轮询：直接请求同源 /api/messages，
         // 由 Cloudflare Pages Functions 转发到 OpenFrp 隧道后的本机后端。
         var POLL_INTERVAL = 3000; // 轮询间隔（毫秒）
+        var POLL_MAX_INTERVAL = 30000; // 连续失败后退避到的上限
         var TOKEN_KEY = 'mb.tokens';
+
+        // 轮询状态：页面隐藏时停下，数据没变时不重建 DOM，失败时指数退避
+        var pollTimer = null;
+        var polling = false;
+        var pollDelay = POLL_INTERVAL;
+        var lastFingerprint = '';
+        var connected = null; // null 未知 / true 已连上 / false 断开
 
         var form = document.getElementById('form');
         var nameInput = document.getElementById('name');
@@ -584,6 +592,12 @@
         function render(messages) {
             var all = Array.isArray(messages) ? messages : [];
 
+            // 数据没变就不重建 DOM：既省开销，也避免打断用户选中的文字
+            var fp = all.length + ':';
+            for (var i = 0; i < all.length; i++) fp += all[i].id + ',';
+            if (fp === lastFingerprint) return;
+            lastFingerprint = fp;
+
             if (!all.length) {
                 listEl.replaceChildren();
                 var empty = document.createElement('div');
@@ -673,25 +687,62 @@
         }
 
         function loadMessages() {
-            fetch('/api/messages')
+            return fetch('/api/messages')
                 .then(function (r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
                     return r.json();
                 })
                 .then(function (data) {
-                    setStatus('已连接（HTTP 轮询）', false);
-                    setTimeout(function () { setStatus('', false); }, 1500);
+                    pollDelay = POLL_INTERVAL; // 恢复正常，重置退避
+                    if (connected !== true) {
+                        connected = true;
+                        setStatus('已连接（HTTP 轮询）', false);
+                        setTimeout(function () { setStatus('', false); }, 1500);
+                    }
                     pruneTokens(data);
                     render(data);
                 })
                 .catch(function () {
-                    setStatus('无法连接服务器，请稍后重试', true);
+                    // 失败退避：离线时不再每 3 秒空转耗电耗流量
+                    pollDelay = Math.min(pollDelay * 2, POLL_MAX_INTERVAL);
+                    if (connected !== false) {
+                        connected = false;
+                        setStatus('无法连接服务器，请稍后重试', true);
+                    }
                     var empty = listEl.querySelector('.empty');
                     if (empty && empty.textContent.indexOf('加载中') !== -1) {
                         empty.textContent = '无法连接服务器，请确认后端服务已启动';
                     }
                 });
         }
+
+        // 只保留一条轮询链：定时到点才发请求，页面隐藏时彻底停下
+        function schedulePoll() {
+            if (pollTimer !== null) return;
+            if (document.visibilityState !== 'visible') return;
+            pollTimer = setTimeout(runPoll, pollDelay);
+        }
+
+        function runPoll() {
+            pollTimer = null;
+            if (polling) { schedulePoll(); return; }
+            if (document.visibilityState !== 'visible') return;
+            polling = true;
+            loadMessages().then(function () {
+                polling = false;
+                schedulePoll();
+            });
+        }
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                pollDelay = POLL_INTERVAL;
+                runPoll(); // 回到前台立即刷新一次
+            } else if (pollTimer !== null) {
+                clearTimeout(pollTimer);
+                pollTimer = null;
+            }
+        });
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -734,8 +785,7 @@
                 });
         });
 
-        loadMessages();
-        setInterval(loadMessages, POLL_INTERVAL);
+        runPoll();
     })();
     </script>
 </body>

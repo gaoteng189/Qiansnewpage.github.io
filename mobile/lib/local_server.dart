@@ -11,10 +11,18 @@ import 'package:path/path.dart' as p;
 /// 接口与网页版 `server.js` 保持一致，前端代码无需任何改动即可复用。
 /// 只监听 127.0.0.1，端口由系统分配，避免与其它应用冲突。
 class LocalServer {
-  LocalServer({required this.webRoot, required this.dataDir});
+  LocalServer({
+    required this.webRoot,
+    required this.dataDir,
+    this.onMissingFile,
+  });
 
   final String webRoot;
   final String dataDir;
+
+  /// 静态文件不存在时的兜底：把 APK 内的大体积资源按需落盘。
+  /// 参数是去掉前导斜杠的 URL 路径，返回落盘后的绝对路径，失败返回 null。
+  final Future<String?> Function(String urlPath)? onMissingFile;
 
   HttpServer? _server;
 
@@ -290,7 +298,15 @@ class LocalServer {
       return;
     }
 
-    final file = File(p.join(webRoot, normalized.replaceAll('/', p.separator)));
+    var file = File(p.join(webRoot, normalized.replaceAll('/', p.separator)));
+    if (!await file.exists()) {
+      // 视频等大体积资源不在解压目录里，按需落盘后再试一次
+      final materialize = onMissingFile;
+      if (materialize != null) {
+        final path = await materialize(normalized);
+        if (path != null) file = File(path);
+      }
+    }
     if (!await file.exists()) {
       res.statusCode = HttpStatus.notFound;
       res.headers.set(HttpHeaders.contentTypeHeader, 'text/html; charset=utf-8');

@@ -6,8 +6,12 @@
 //  - 目录请求补 index.html
 //  - 子目录页面
 //  - Range 请求（视频拖动进度条依赖）
+//  - 大资源按需落盘（视频不在解压目录里，靠 onMissingFile 取出）
 //  - 接口：留言板 / 小说书库
 //  - 路径穿越防护
+//
+// 注：materializeAsset 依赖 rootBundle，只能在设备上跑，这里验证的是
+// LocalServer 与回调之间的协议。
 // ignore_for_file: avoid_print
 import 'dart:convert';
 import 'dart:io';
@@ -34,7 +38,28 @@ Future<void> main() async {
   await File(p.join(www.path, 'big.bin')).writeAsBytes(List<int>.filled(1000, 7));
   await File(p.join(tmp.path, 'novels', 'a.txt')).writeAsString('小说内容');
 
-  final server = LocalServer(webRoot: www.path, dataDir: tmp.path);
+  // 模拟 APK 内的大体积资源：不在 webRoot 里，靠 onMissingFile 按需落盘
+  final lazySource = Directory(p.join(tmp.path, 'lazy-src'));
+  await lazySource.create(recursive: true);
+  await File(p.join(lazySource.path, 'Movie.mp4'))
+      .writeAsBytes(List<int>.filled(5000, 9));
+  var materializeCalls = 0;
+
+  final server = LocalServer(
+    webRoot: www.path,
+    dataDir: tmp.path,
+    onMissingFile: (urlPath) async {
+      if (!urlPath.startsWith('video/')) return null;
+      final dest = File(p.join(www.path, urlPath.replaceAll('/', p.separator)));
+      if (await dest.exists()) return dest.path; // 已落盘，直接用
+      materializeCalls++;
+      final src = File(p.join(lazySource.path, p.basename(urlPath)));
+      if (!await src.exists()) return null; // APK 里确实没这个资源
+      await dest.parent.create(recursive: true);
+      await src.copy(dest.path);
+      return dest.path;
+    },
+  );
   final port = await server.start();
   final base = 'http://127.0.0.1:$port';
   final client = HttpClient();
@@ -89,10 +114,31 @@ Future<void> main() async {
     check('GET /api/novels 列出 a.txt',
         novels is List && novels.any((e) => e['name'] == 'a.txt'), body);
 
+    print('按需落盘的大资源');
+    res = await get('/video/Movie.mp4');
+    final movie = await res.fold<List<int>>([], (a, b) => a..addAll(b));
+    check('GET /video/Movie.mp4 返回 200', res.statusCode == 200, '实际 ${res.statusCode}');
+    check('按需落盘后内容完整', movie.length == 5000, '实际 ${movie.length}');
+    check('首次请求触发一次落盘', materializeCalls == 1, '实际 $materializeCalls 次');
+
+    res = await get('/video/Movie.mp4', range: 'bytes=100-199');
+    final part = await res.fold<List<int>>([], (a, b) => a..addAll(b));
+    check('落盘后的视频支持 Range', res.statusCode == 206 && part.length == 100,
+        '实际 ${res.statusCode}/${part.length}');
+    check('已落盘不再重复落盘', materializeCalls == 1, '实际 $materializeCalls 次');
+
+    res = await get('/api/messages');
+    await res.drain<void>();
+    check('接口请求不触发落盘', materializeCalls == 1, '实际 $materializeCalls 次');
+
     print('不存在的资源');
     res = await get('/nope.html');
     await res.drain<void>();
     check('GET /nope.html 返回 404', res.statusCode == 404, '实际 ${res.statusCode}');
+
+    res = await get('/video/Nope.mp4');
+    await res.drain<void>();
+    check('APK 里确实没有的资源返回 404', res.statusCode == 404, '实际 ${res.statusCode}');
   } finally {
     client.close(force: true);
     await server.stop();

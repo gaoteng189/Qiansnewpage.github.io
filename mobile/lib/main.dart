@@ -99,7 +99,12 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) setState(() => _stage = '正在启动本地服务…');
 
-      final server = LocalServer(webRoot: www.path, dataDir: support.path);
+      final server = LocalServer(
+        webRoot: www.path,
+        dataDir: support.path,
+        // 视频不在 www 解压目录里，首次播放时才落盘
+        onMissingFile: (path) => materializeAsset(www, path),
+      );
       final port = await server.start();
       _server = server;
 

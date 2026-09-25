@@ -62,9 +62,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # 打包好的网站资源（由 scripts/pack-web.js 生成，首次启动解压到应用目录）
+  # 打包好的网站资源（由 scripts/pack-web.js 生成）
+  # - www.zip：页面资源，首次启动解压到应用目录
+  # - video/：视频共 86 MB，首次播放某个视频时才按需落盘
   assets:
     - assets/www.zip
+    - assets/video/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
