@@ -9,21 +9,48 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <style>
+        /* Fluent Design 2 · 天蓝 */
         :root {
-            --md-primary: #8D6E63;
+            --accent: #0EA5E9;
+            --accent-hover: #28B4F0;
+            --accent-pressed: #0284C7;
+            --accent-soft: #E7F4FD;
+
+            --bg: #F3F6F9;
+            --layer: #FFFFFF;
+            --layer-alt: #F7FAFC;
+            --stroke: #E3E9EF;
+            --stroke-strong: #C8D3DC;
+
+            --text: #1B1B1B;
+            --text-2: #5A6672;
+
+            --danger: #D13438;
+
+            --r-lg: 12px;
+            --r-md: 8px;
+            --r-sm: 4px;
+
+            --shadow-2: 0 1px 2px rgba(16, 24, 40, .06);
+            --shadow-4: 0 2px 6px rgba(16, 24, 40, .08);
+            --shadow-8: 0 6px 18px rgba(16, 24, 40, .10);
+
+            /* 兼容既有变量名 */
+            --md-primary: var(--accent);
             --md-on-primary: #FFFFFF;
-            --md-primary-container: #EFDBD1;
-            --md-on-primary-container: #3E2723;
-            --md-secondary: #A1887F;
-            --md-secondary-container: #E5D5CF;
-            --md-on-secondary-container: #3E2723;
-            --md-surface: #FDF8F5;
-            --md-surface-container: #F6ECE7;
-            --md-surface-container-high: #F0E3DC;
-            --md-on-surface: #1F1B16;
-            --md-on-surface-variant: #52443C;
-            --md-outline: #85736A;
-            --md-error: #BA1A1A;
+            --md-primary-container: var(--accent-soft);
+            --md-on-primary-container: #0B4A6F;
+            --md-secondary: #64748B;
+            --md-secondary-container: var(--accent-soft);
+            --md-on-secondary-container: #0B4A6F;
+            --md-surface: var(--bg);
+            --md-surface-container: var(--layer);
+            --md-surface-container-high: var(--layer-alt);
+            --md-on-surface: var(--text);
+            --md-on-surface-variant: var(--text-2);
+            --md-outline: var(--stroke-strong);
+            --md-outline-variant: var(--stroke);
+            --md-error: var(--danger);
             --md-on-error: #FFFFFF;
         }
 
@@ -229,6 +256,76 @@
         footer a:hover {
             text-decoration: underline;
         }
+
+        /* ---------- Fluent Design 细化 ---------- */
+        body { background: var(--bg); }
+
+        .shell {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-8);
+        }
+
+        h1 { font-size: 22px; font-weight: 600; }
+
+        .pill {
+            background: var(--accent-soft);
+            color: var(--accent-pressed);
+            border-radius: var(--r-sm);
+            padding: 7px 14px;
+            font-size: 13px;
+        }
+
+        .stage {
+            border-radius: var(--r-md);
+            border: 1px solid var(--stroke);
+            outline: none;
+        }
+
+        .overlay {
+            background: rgba(255, 255, 255, .82);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+
+        .overlay h2 { font-size: 26px; font-weight: 600; }
+        .overlay .desc { font-size: 14px; color: var(--text-2); }
+        .overlay .final-score { color: var(--accent-pressed); font-size: 18px; }
+
+        .btn {
+            border-radius: var(--r-sm);
+            font-size: 15px;
+            padding: 11px 26px;
+        }
+        .btn:hover { background: var(--accent-hover); opacity: 1; }
+        .btn:active { background: var(--accent-pressed); transform: none; }
+
+        .btn-tonal {
+            background: var(--layer);
+            color: var(--text);
+            border: 1px solid var(--stroke-strong);
+        }
+        .btn-tonal:hover { background: var(--layer-alt); }
+
+        .chip {
+            background: var(--layer);
+            color: var(--text-2);
+            border: 1px solid var(--stroke-strong);
+            border-radius: var(--r-sm);
+            padding: 7px 16px;
+        }
+        .chip:hover { background: var(--layer-alt); opacity: 1; }
+        .chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--md-on-primary);
+        }
+
+        .hint { color: var(--text-2); }
+        .sound-btn { border-radius: var(--r-sm); }
+        footer { color: var(--text-2); }
+        footer a { color: var(--accent-pressed); }
     </style>
 </head>
 <body>
@@ -293,14 +390,14 @@
 
         // ---------- 颜色 ----------
         var COL = {
-            sky: '#FDF8F5',
-            hill: '#E5D5CF',
-            ground: '#EFDBD1',
-            groundLine: '#C9A99A',
-            player: '#8D6E63',
+            sky: '#FFFFFF',
+            hill: '#E7F4FD',
+            ground: '#F7FAFC',
+            groundLine: '#C8D3DC',
+            player: '#0EA5E9',
             playerEye: '#FFFFFF',
-            obstacle: '#5D4037',
-            cloud: '#F0E3DC'
+            obstacle: '#334155',
+            cloud: '#EEF3F7'
         };
 
         // ---------- 状态 ----------

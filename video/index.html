@@ -9,21 +9,47 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <style>
+        /* Fluent Design 2 · 天蓝 */
         :root {
-            --md-primary: #8D6E63;
+            --accent: #0EA5E9;
+            --accent-hover: #28B4F0;
+            --accent-pressed: #0284C7;
+            --accent-soft: #E7F4FD;
+
+            --bg: #F3F6F9;
+            --layer: #FFFFFF;
+            --layer-alt: #F7FAFC;
+            --stroke: #E3E9EF;
+            --stroke-strong: #C8D3DC;
+
+            --text: #1B1B1B;
+            --text-2: #5A6672;
+
+            --r-lg: 12px;
+            --r-md: 8px;
+            --r-sm: 4px;
+
+            --shadow-2: 0 1px 2px rgba(16, 24, 40, .06);
+            --shadow-4: 0 2px 6px rgba(16, 24, 40, .08);
+            --shadow-8: 0 6px 18px rgba(16, 24, 40, .10);
+
+            /* 兼容既有变量名 */
+            --md-primary: var(--accent);
             --md-on-primary: #FFFFFF;
-            --md-primary-container: #EFDBD1;
-            --md-on-primary-container: #3E2723;
-            --md-secondary: #A1887F;
-            --md-secondary-container: #E5D5CF;
-            --md-on-secondary-container: #3E2723;
-            --md-surface: #FDF8F5;
-            --md-surface-container: #F6ECE7;
-            --md-surface-container-high: #F0E3DC;
-            --md-on-surface: #1F1B16;
-            --md-on-surface-variant: #52443C;
-            --md-outline: #85736A;
-            --md-outline-variant: #D8CCC4;
+            --md-primary-container: var(--accent-soft);
+            --md-on-primary-container: #0B4A6F;
+            --md-secondary: #64748B;
+            --md-secondary-container: var(--accent-soft);
+            --md-on-secondary-container: #0B4A6F;
+            --md-surface: var(--bg);
+            --md-surface-container: var(--layer);
+            --md-surface-container-high: var(--layer-alt);
+            --md-on-surface: var(--text);
+            --md-on-surface-variant: var(--text-2);
+            --md-outline: var(--stroke-strong);
+            --md-outline-variant: var(--stroke);
+            --md-error: #D13438;
+            --md-on-error: #FFFFFF;
         }
 
         * {
@@ -50,7 +76,7 @@
             transform: translateX(-50%);
             width: 90vw;
             height: 70vh;
-            background: radial-gradient(ellipse at center, rgba(141, 110, 99, 0.16), transparent 70%);
+            background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.14), transparent 70%);
             z-index: 0;
             pointer-events: none;
         }
@@ -232,6 +258,50 @@
             .btn { font-size: 12px; padding: 8px 6px; }
             .toast-container { top: 16px; right: 16px; left: 16px; max-width: none; width: auto; }
             .toast { font-size: 14px; padding: 12px 16px; }
+        }
+
+        /* ---------- Fluent Design 细化 ---------- */
+        .app-title .title { font-weight: 600; }
+        .app-title .subtitle { color: var(--text-2); }
+
+        .logo { border-radius: var(--r-md); }
+
+        .player-card {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+            box-shadow: var(--shadow-4);
+        }
+
+        video { border-radius: var(--r-sm); }
+
+        .segmented {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+            padding: 4px;
+        }
+
+        .btn {
+            border-radius: var(--r-sm);
+            font-size: 13.5px;
+        }
+        .btn:hover { background: var(--layer-alt); color: var(--text); }
+        .btn.active { background: var(--accent); color: #fff; }
+
+        .current-hint { color: var(--text-2); }
+        .current-hint strong { color: var(--accent-pressed); }
+
+        footer { color: var(--text-2); }
+        footer a { color: var(--accent-pressed); }
+
+        .toast {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--r-md);
+            box-shadow: var(--shadow-8);
+            font-size: 14px;
         }
     </style>
 </head>

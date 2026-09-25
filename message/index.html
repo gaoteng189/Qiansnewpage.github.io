@@ -9,22 +9,48 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <style>
+        /* Fluent Design 2 · 天蓝 */
         :root {
-            --md-primary: #8D6E63;
+            --accent: #0EA5E9;
+            --accent-hover: #28B4F0;
+            --accent-pressed: #0284C7;
+            --accent-soft: #E7F4FD;
+
+            --bg: #F3F6F9;
+            --layer: #FFFFFF;
+            --layer-alt: #F7FAFC;
+            --stroke: #E3E9EF;
+            --stroke-strong: #C8D3DC;
+
+            --text: #1B1B1B;
+            --text-2: #5A6672;
+
+            --danger: #D13438;
+
+            --r-lg: 12px;
+            --r-md: 8px;
+            --r-sm: 4px;
+
+            --shadow-2: 0 1px 2px rgba(16, 24, 40, .06);
+            --shadow-4: 0 2px 6px rgba(16, 24, 40, .08);
+            --shadow-8: 0 6px 18px rgba(16, 24, 40, .10);
+
+            /* 兼容既有变量名 */
+            --md-primary: var(--accent);
             --md-on-primary: #FFFFFF;
-            --md-primary-container: #EFDBD1;
-            --md-on-primary-container: #3E2723;
-            --md-secondary: #A1887F;
-            --md-secondary-container: #E5D5CF;
-            --md-on-secondary-container: #3E2723;
-            --md-surface: #FDF8F5;
-            --md-surface-container: #F6ECE7;
-            --md-surface-container-high: #F0E3DC;
-            --md-on-surface: #1F1B16;
-            --md-on-surface-variant: #52443C;
-            --md-outline: #85736A;
-            --md-outline-variant: #D8CCC4;
-            --md-error: #BA1A1A;
+            --md-primary-container: var(--accent-soft);
+            --md-on-primary-container: #0B4A6F;
+            --md-secondary: #64748B;
+            --md-secondary-container: var(--accent-soft);
+            --md-on-secondary-container: #0B4A6F;
+            --md-surface: var(--bg);
+            --md-surface-container: var(--layer);
+            --md-surface-container-high: var(--layer-alt);
+            --md-on-surface: var(--text);
+            --md-on-surface-variant: var(--text-2);
+            --md-outline: var(--stroke-strong);
+            --md-outline-variant: var(--stroke);
+            --md-error: var(--danger);
             --md-on-error: #FFFFFF;
         }
 
@@ -298,6 +324,82 @@
             text-decoration: none;
         }
         footer a:hover { text-decoration: underline; }
+
+        /* ---------- Fluent Design 细化 ---------- */
+        body { background: var(--bg); }
+
+        .shell {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-8);
+        }
+
+        h1 { font-size: 22px; font-weight: 600; }
+
+        .card {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+            box-shadow: var(--shadow-2);
+        }
+
+        input[type="text"],
+        textarea {
+            background: var(--layer);
+            border: 1px solid var(--stroke-strong);
+            border-radius: var(--r-sm);
+        }
+        input[type="text"]:focus,
+        textarea:focus {
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+
+        .btn {
+            border-radius: var(--r-sm);
+            font-weight: 600;
+        }
+        .btn:hover { background: var(--accent-hover); opacity: 1; }
+        .btn:active { background: var(--accent-pressed); transform: none; }
+
+        .msg {
+            background: var(--layer-alt);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+        }
+        .msg.mine { border-color: var(--accent); }
+
+        .msg-actions button { border-radius: var(--r-sm); }
+        .msg-actions button:hover { background: var(--accent-soft); color: var(--accent-pressed); }
+        .msg-actions button.danger:hover { background: var(--danger); color: #fff; }
+
+        .emoji-row button {
+            border-radius: var(--r-sm);
+            border-color: var(--stroke-strong);
+        }
+        .emoji-row button:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+        .reply-hint {
+            background: var(--accent-soft);
+            color: var(--accent-pressed);
+            border-radius: var(--r-sm);
+        }
+
+        .chip {
+            background: var(--layer);
+            color: var(--text-2);
+            border: 1px solid var(--stroke-strong);
+            border-radius: var(--r-sm);
+        }
+        .chip:hover { background: var(--layer-alt); }
+        .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .replies { border-left-color: var(--stroke); }
+        .msg.reply { background: var(--layer); }
+
+        footer { color: var(--text-2); }
+        footer a { color: var(--accent-pressed); }
     </style>
 </head>
 <body>

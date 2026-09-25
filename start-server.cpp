@@ -26,81 +26,83 @@
 // ---------- M3 棕色 QSS ----------
 static const char* M3_QSS = R"(
 QWidget {
-    background-color: #FDF8F5;
-    color: #1F1B16;
+    background-color: #F3F6F9;
+    color: #1B1B1B;
     font-family: "Segoe UI", "Microsoft YaHei", "微软雅黑";
     font-size: 13px;
 }
 #titleLabel {
     font-size: 19px;
-    font-weight: bold;
-    color: #1F1B16;
+    font-weight: 600;
+    color: #1B1B1B;
     background: transparent;
 }
 #subtitleLabel {
-    color: #52443C;
+    color: #5A6672;
     background: transparent;
 }
 #cardFrame {
-    background-color: #F6ECE7;
-    border-radius: 20px;
+    background-color: #FFFFFF;
+    border: 1px solid #E3E9EF;
+    border-radius: 8px;
 }
 QLabel {
     background: transparent;
 }
 #statusValue {
-    color: #1F1B16;
-    font-weight: bold;
+    color: #1B1B1B;
+    font-weight: 600;
 }
 #urlValue {
-    color: #8D6E63;
-    font-weight: bold;
+    color: #0284C7;
+    font-weight: 600;
 }
 QPushButton {
-    background-color: #8D6E63;
+    background-color: #0EA5E9;
     color: #FFFFFF;
     border: none;
-    border-radius: 18px;
-    min-height: 36px;
-    padding: 8px 28px;
-    font-weight: bold;
+    border-radius: 4px;
+    min-height: 34px;
+    padding: 8px 24px;
+    font-weight: 600;
     font-size: 14px;
 }
 QPushButton:hover {
-    background-color: #7A5C52;
+    background-color: #28B4F0;
 }
 QPushButton:pressed {
-    background-color: #6D5148;
+    background-color: #0284C7;
 }
 QPushButton:disabled {
-    background-color: #C9B7AE;
+    background-color: #B9C4CE;
 }
 #stopBtn, #setPortBtn {
-    background-color: #EFDBD1;
-    color: #3E2723;
+    background-color: #FFFFFF;
+    color: #1B1B1B;
+    border: 1px solid #C8D3DC;
 }
 #stopBtn:hover, #setPortBtn:hover {
-    background-color: #E3C8BA;
+    background-color: #F7FAFC;
 }
 QLineEdit {
     background-color: #FFFFFF;
-    border: 1px solid #85736A;
-    border-radius: 12px;
+    border: 1px solid #C8D3DC;
+    border-radius: 4px;
     padding: 8px 12px;
     font-size: 14px;
 }
 QLineEdit:focus {
-    border: 2px solid #8D6E63;
+    border: 1px solid #0EA5E9;
 }
 QProgressBar {
-    background-color: #EFDBD1;
+    background-color: #E7F4FD;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     height: 10px;
 }
 QProgressBar::chunk {
-    background-color: #8D6E63;
-    border-radius: 5px;
+    background-color: #0EA5E9;
+    border-radius: 4px;
 }
 )";
 

@@ -9,22 +9,48 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <style>
+        /* Fluent Design 2 · 天蓝 */
         :root {
-            --md-primary: #8D6E63;
+            --accent: #0EA5E9;
+            --accent-hover: #28B4F0;
+            --accent-pressed: #0284C7;
+            --accent-soft: #E7F4FD;
+
+            --bg: #F3F6F9;
+            --layer: #FFFFFF;
+            --layer-alt: #F7FAFC;
+            --stroke: #E3E9EF;
+            --stroke-strong: #C8D3DC;
+
+            --text: #1B1B1B;
+            --text-2: #5A6672;
+
+            --danger: #D13438;
+
+            --r-lg: 12px;
+            --r-md: 8px;
+            --r-sm: 4px;
+
+            --shadow-2: 0 1px 2px rgba(16, 24, 40, .06);
+            --shadow-4: 0 2px 6px rgba(16, 24, 40, .08);
+            --shadow-8: 0 6px 18px rgba(16, 24, 40, .10);
+
+            /* 兼容既有变量名 */
+            --md-primary: var(--accent);
             --md-on-primary: #FFFFFF;
-            --md-primary-container: #EFDBD1;
-            --md-on-primary-container: #3E2723;
-            --md-secondary: #A1887F;
-            --md-secondary-container: #E5D5CF;
-            --md-on-secondary-container: #3E2723;
-            --md-surface: #FDF8F5;
-            --md-surface-container: #F6ECE7;
-            --md-surface-container-high: #F0E3DC;
-            --md-on-surface: #1F1B16;
-            --md-on-surface-variant: #52443C;
-            --md-outline: #85736A;
-            --md-outline-variant: #D8CCC4;
-            --md-error: #BA1A1A;
+            --md-primary-container: var(--accent-soft);
+            --md-on-primary-container: #0B4A6F;
+            --md-secondary: #64748B;
+            --md-secondary-container: var(--accent-soft);
+            --md-on-secondary-container: #0B4A6F;
+            --md-surface: var(--bg);
+            --md-surface-container: var(--layer);
+            --md-surface-container-high: var(--layer-alt);
+            --md-on-surface: var(--text);
+            --md-on-surface-variant: var(--text-2);
+            --md-outline: var(--stroke-strong);
+            --md-outline-variant: var(--stroke);
+            --md-error: var(--danger);
             --md-on-error: #FFFFFF;
 
             --reader-font-size: 18px;
@@ -32,30 +58,26 @@
             --reader-width: 720px;
         }
 
-        /* 护眼主题 */
+        /* 护眼主题（米白，弱化蓝光） */
         body[data-theme="sepia"] {
-            --md-surface: #F7EFDD;
-            --md-surface-container: #F1E7D0;
-            --md-surface-container-high: #E9DCC1;
-            --md-on-surface: #3A2F26;
-            --md-on-surface-variant: #5B4A3C;
-            --md-outline: #9C8A72;
-            --md-outline-variant: #DACAA9;
+            --bg: #F6F1E5;
+            --layer: #FDFAF2;
+            --layer-alt: #F4EEE0;
+            --stroke: #E4DBC8;
+            --stroke-strong: #CDC2A8;
+            --text: #33302A;
+            --text-2: #605A4E;
         }
 
         /* 夜间主题 */
         body[data-theme="night"] {
-            --md-surface: #1B1816;
-            --md-surface-container: #252120;
-            --md-surface-container-high: #2F2A28;
-            --md-on-surface: #EAE1DB;
-            --md-on-surface-variant: #C2B4AB;
-            --md-outline: #6E615A;
-            --md-outline-variant: #443D39;
-            --md-secondary-container: #3A322E;
-            --md-on-secondary-container: #EAE1DB;
-            --md-primary-container: #4A3B34;
-            --md-on-primary-container: #F0E3DC;
+            --bg: #16191C;
+            --layer: #1E2226;
+            --layer-alt: #242A2F;
+            --stroke: #2E353B;
+            --stroke-strong: #3F474E;
+            --text: #E6EAEE;
+            --text-2: #9FAAB4;
         }
 
         * {
@@ -670,6 +692,136 @@
         @media (min-width: 821px) {
             #tocClose { display: none; }
             #tocBtn { display: none; }
+        }
+
+        /* ---------- Fluent Design 细化 ---------- */
+        .app {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-8);
+        }
+
+        h1 { font-weight: 600; }
+
+        .card {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+            box-shadow: var(--shadow-2);
+        }
+
+        .chip {
+            background: var(--layer);
+            color: var(--text-2);
+            border: 1px solid var(--stroke-strong);
+            border-radius: var(--r-sm);
+        }
+        .chip:hover { background: var(--layer-alt); opacity: 1; }
+        .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .chip-group {
+            background: transparent;
+            border-radius: var(--r-sm);
+            overflow: visible;
+            gap: 6px;
+        }
+        .chip-group .chip { border-radius: var(--r-sm); padding: 8px 12px; }
+        .chip-group .chip:first-child { border-radius: var(--r-sm); padding-left: 12px; }
+        .chip-group .chip:last-child { border-radius: var(--r-sm); padding-right: 12px; }
+        .chip-val { color: var(--text-2); }
+
+        .btn {
+            border-radius: var(--r-sm);
+            font-weight: 600;
+        }
+        .btn:hover { background: var(--accent-hover); opacity: 1; }
+        .btn:active { background: var(--accent-pressed); transform: none; }
+
+        .btn-sec {
+            background: var(--layer);
+            color: var(--text);
+            border: 1px solid var(--stroke-strong);
+        }
+        .btn-sec:hover { background: var(--layer-alt); }
+
+        .drop {
+            border: 1px dashed var(--stroke-strong);
+            border-radius: var(--r-md);
+        }
+        .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+        .drop-icon {
+            background: var(--accent-soft);
+            color: var(--accent-pressed);
+            border-radius: var(--r-md);
+        }
+
+        .toc {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+        }
+        .toc-list li { border-radius: var(--r-sm); }
+        .toc-list li.active {
+            background: var(--accent-soft);
+            color: var(--accent-pressed);
+            border-left-color: var(--accent);
+        }
+
+        .shelf-item {
+            background: var(--layer-alt);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+        }
+        .shelf-item:hover { background: var(--accent-soft); color: var(--accent-pressed); }
+
+        .modal-panel {
+            background: var(--layer);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-8);
+        }
+        .modal-head { border-bottom-color: var(--stroke); }
+
+        .modal-body input[type="text"] {
+            background: var(--layer);
+            border: 1px solid var(--stroke-strong);
+            border-radius: var(--r-sm);
+        }
+        .modal-body input[type="text"]:focus {
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+            padding: 11px 16px;
+        }
+
+        .hit {
+            background: var(--layer-alt);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+        }
+        .hit:hover { background: var(--accent-soft); color: var(--accent-pressed); }
+        .hit mark { background: #BAE6FD; color: #0B4A6F; border-radius: 2px; }
+
+        .bm {
+            background: var(--layer-alt);
+            border: 1px solid var(--stroke);
+            border-radius: var(--r-md);
+        }
+        .bm-title:hover { color: var(--accent-pressed); }
+
+        .time-box > div {
+            background: var(--accent-soft);
+            color: var(--accent-pressed);
+            border-radius: var(--r-md);
+        }
+
+        .icon-btn { border-radius: var(--r-sm); }
+        .icon-btn:hover { background: var(--layer-alt); }
+
+        .toast {
+            background: var(--text);
+            color: var(--layer);
+            border-radius: var(--r-sm);
         }
     </style>
 </head>

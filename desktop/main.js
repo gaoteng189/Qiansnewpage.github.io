@@ -98,7 +98,7 @@ function createWindow() {
         height: 840,
         minWidth: 760,
         minHeight: 540,
-        backgroundColor: '#FDF8F5',
+        backgroundColor: '#F3F6F9',
         title: APP_NAME,
         icon: path.join(__dirname, 'build', 'icon.png'),
         autoHideMenuBar: false,
