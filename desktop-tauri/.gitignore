@@ -1,0 +1,7 @@
+# 依赖与构建产物
+node_modules/
+/src-tauri/target/
+/src-tauri/gen/
+
+# 网站资源副本（由 scripts/build-www.js 生成，含 86 MB 视频，勿提交）
+/src-tauri/www/

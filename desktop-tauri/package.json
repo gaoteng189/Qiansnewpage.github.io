@@ -1,0 +1,14 @@
+{
+  "name": "qiansnewpage-tauri",
+  "private": true,
+  "version": "1.0.0",
+  "description": "千叶新页桌面版（Tauri 2）",
+  "scripts": {
+    "www": "node scripts/build-www.js",
+    "dev": "npm run www && tauri dev",
+    "build": "npm run www && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

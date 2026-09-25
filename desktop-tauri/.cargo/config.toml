@@ -1,0 +1,10 @@
+# 国内镜像：crates.io 直连经常超时，这里统一走 rsproxy（字节跳动公共镜像）。
+# 只作用于本目录，不影响机器上其它 Rust 项目。
+[source.crates-io]
+replace-with = 'rsproxy-sparse'
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+
+[net]
+git-fetch-with-cli = true
