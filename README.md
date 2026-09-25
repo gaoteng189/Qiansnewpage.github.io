@@ -22,6 +22,7 @@
 ├── message/            # 留言板页面
 ├── todo/               # 待办清单
 ├── desktop/            # Electron 桌面应用工程
+├── mobile/             # Flutter 移动应用工程（Android）
 ├── server.js           # 留言板后端（零依赖 Node.js，可被 Electron 复用）
 ├── start-server.cpp    # 启动程序源码（Qt6 GUI）
 ├── stub.cpp            # 单 exe 启动器（Win32，内嵌运行时依赖）
@@ -95,10 +96,33 @@ $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
 $env:ELECTRON_BUILDER_BINARIES_MIRROR = "https://npmmirror.com/mirrors/electron-builder-binaries/"
 ```
 
+### 移动应用（Flutter / Android）
+
+`mobile/` 是 Flutter 工程：把同一套网页装进原生壳，应用内用 Dart 内置了一个轻量 HTTP 服务
+（静态资源 + 留言板 / 小说书库接口，行为与 `server.js` 对齐），因此前端代码零改动。
+
+```bash
+cd mobile
+node scripts/pack-web.js      # 把网站资源打包成 assets/www.zip
+flutter pub get
+flutter build apk --release   # 产物：build/app/outputs/flutter-apk/app-release.apk
+```
+
+- 首次启动会把 `www.zip` 解压到应用数据目录，再由内置服务按文件流提供（视频支持 Range 请求）。
+- 服务只监听 `127.0.0.1`，端口由系统分配；Android 的明文流量仅对回环地址放开。
+- 数据保存在应用私有目录：`messages.json`（留言）与 `novels/`（小说书库）。
+- 需要 Flutter SDK（3.x）与 Android SDK；构建前可设置镜像加速：
+
+```bash
+$env:FLUTTER_STORAGE_BASE_URL = "https://storage.flutter-io.cn"
+$env:PUB_HOSTED_URL = "https://pub.flutter-io.cn"
+```
+
 ## 技术栈
 
 - 前端：原生 HTML / CSS / JavaScript
 - 后端：Node.js（零依赖，原生 http / fs / crypto）
 - 桌面端：Electron（内置 Node 服务，可打包为 Windows 安装程序）
+- 移动端：Flutter（WebView + Dart 内置服务，可打包为 Android APK）
 - 启动程序：C++ / Qt6（MSYS2 UCRT64 工具链）
 - 内网穿透：Tailscale Funnel
