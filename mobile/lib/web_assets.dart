@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 /// 网站资源版本号：网站内容有大改动时递增，会触发重新解压
-const String kWebAssetsVersion = '1';
+const String kWebAssetsVersion = '2';
 
 /// 确保网站资源已解压到应用目录，返回站点根目录
 ///

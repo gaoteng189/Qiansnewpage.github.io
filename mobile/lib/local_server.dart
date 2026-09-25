@@ -278,8 +278,13 @@ class LocalServer {
     if (rel.isEmpty || rel == '/') rel = '/index.html';
     if (rel.endsWith('/')) rel = '${rel}index.html';
 
+    // 必须先剥掉开头的 '/'，这一步不能省：
+    // Windows 上 p.join(root, r'\index.html') 会把「根相对路径」当成新根，
+    // 直接丢弃 webRoot，得到 'C:\index.html'，导致所有静态资源 404。
+    rel = rel.replaceAll(RegExp(r'^/+'), '');
+
     final normalized = p.normalize(rel).replaceAll('\\', '/');
-    if (normalized.startsWith('..')) {
+    if (normalized.startsWith('..') || p.isAbsolute(normalized)) {
       res.statusCode = HttpStatus.forbidden;
       await res.close();
       return;
